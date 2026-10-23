@@ -1,0 +1,25 @@
+; build a few defenders, call the waves, watch a fight
+run 50
+tap space
+run 30
+; cretan at the cursor (7,3)
+tap space
+run 10
+expect towers 1
+tap right
+tap right
+tap 4
+tap space
+run 10
+expect towers+8 4
+shot built
+tap n
+run 300
+shot wave1a
+load 100
+run 400
+shot wave1b
+print hp
+print wave_num
+print funds 2
+print score 2

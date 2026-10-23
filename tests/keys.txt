@@ -1,0 +1,32 @@
+; Greek, the pause, BREAK back to the title; the defender keys and selling
+run 50
+tap l
+run 20
+shot title_gr
+tap space
+run 60
+shot game_gr
+tap 4
+run 8
+expect sel_type 4
+tap 3
+run 8
+expect sel_type 4                 ; the bride is not in the first stage
+tap space
+run 8
+expect towers 4
+tap s
+run 8
+expect towers 0
+expectw funds 80                  ; 120 - 80 + 40
+tap h
+run 20
+expect paused 1
+shot paused_gr
+tap break
+run 30
+expect quit 1
+run 60
+shot title_again
+tap l
+run 20

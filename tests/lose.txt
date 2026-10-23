@@ -1,0 +1,17 @@
+; no defenders: the Kafenio falls; a life is lost and the stage played again
+run 50
+tap space
+run 30
+expect rt_lives 3
+poke hp 5
+tap n
+until game_over 2 - 3000
+shot lost
+run 200
+tap space
+run 40
+expect rt_lives 2
+expect stage 0
+expect hp 100
+expect wave_num 0
+shot again

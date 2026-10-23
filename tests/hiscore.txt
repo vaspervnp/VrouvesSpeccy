@@ -1,0 +1,21 @@
+; a game quit with a score for the table: the name, then the table
+run 50
+tap space
+run 30
+pokew score 7777
+tap h
+run 10
+tap break
+run 80
+shot hs_name
+tap up                       ; A -> the last letter, a space
+tap up                       ; -> 9
+tap space
+tap space
+tap space
+run 60
+expect tpage 4
+expect hs_new 0
+expectw hs_table+3 7777
+expect hs_table 36           ; '9'
+shot hs_table

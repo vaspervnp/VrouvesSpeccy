@@ -1,0 +1,18 @@
+; the title, its pages, then into the game
+run 60
+shot title0
+tap right
+run 30
+shot title1
+tap right
+run 30
+shot title2
+tap right
+run 30
+shot title3
+tap right
+run 30
+shot title4
+tap space
+run 100
+shot game0

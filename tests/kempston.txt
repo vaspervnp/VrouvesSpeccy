@@ -1,0 +1,17 @@
+; the Kempston joystick: fire starts, the stick moves the cursor, fire builds
+run 50
+tap kfire
+run 30
+expect cur_c 7
+run 6 kright
+run 10
+expect cur_c 8
+run 6 kdown
+run 10
+expect cur_r 4
+run 6 kup
+run 10
+expect cur_r 3                  ; (8,4) is the road: back up to (8,3)
+tap kfire
+run 8
+expect towers 1
