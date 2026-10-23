@@ -2,101 +2,81 @@
 run 50
 tap space
 run 30
-poke cur_c 3
+poke cur_c 1
 poke cur_r 0
 poke sel_type 1
+tap space
+poke cur_c 4
+poke cur_r 0
+poke sel_type 2
+tap space
+poke cur_c 6
+poke cur_r 0
+poke sel_type 3
+tap space
+poke cur_c 9
+poke cur_r 0
+poke sel_type 4
+tap space
+poke cur_c 13
+poke cur_r 0
+poke sel_type 5
+tap space
+poke cur_c 13
+poke cur_r 1
+poke sel_type 6
+tap space
+poke cur_c 3
+poke cur_r 2
+poke sel_type 1
+tap space
+poke cur_c 9
+poke cur_r 2
+poke sel_type 2
+tap space
+poke cur_c 12
+poke cur_r 2
+poke sel_type 3
+tap space
+poke cur_c 2
+poke cur_r 4
+poke sel_type 4
+tap space
+poke cur_c 5
+poke cur_r 4
+poke sel_type 5
 tap space
 poke cur_c 7
-poke cur_r 0
-poke sel_type 2
-tap space
-poke cur_c 11
-poke cur_r 0
-poke sel_type 3
-tap space
-poke cur_c 16
-poke cur_r 0
-poke sel_type 4
-tap space
-poke cur_c 1
-poke cur_r 2
-poke sel_type 5
-tap space
-poke cur_c 5
-poke cur_r 2
+poke cur_r 4
 poke sel_type 6
 tap space
-poke cur_c 8
-poke cur_r 2
-poke sel_type 1
-tap space
-poke cur_c 17
-poke cur_r 2
-poke sel_type 2
-tap space
-poke cur_c 5
-poke cur_r 3
-poke sel_type 3
-tap space
-poke cur_c 8
-poke cur_r 3
-poke sel_type 4
-tap space
-poke cur_c 11
-poke cur_r 3
-poke sel_type 5
-tap space
-poke cur_c 14
-poke cur_r 3
-poke sel_type 6
-tap space
-poke cur_c 3
-poke cur_r 5
+poke cur_c 9
+poke cur_r 4
 poke sel_type 1
 tap space
 poke cur_c 12
-poke cur_r 5
+poke cur_r 4
 poke sel_type 2
 tap space
-poke cur_c 16
-poke cur_r 5
+poke cur_c 5
+poke cur_r 6
 poke sel_type 3
 tap space
 poke cur_c 10
 poke cur_r 6
 poke sel_type 4
 tap space
-poke cur_c 14
-poke cur_r 6
+poke cur_c 5
+poke cur_r 7
 poke sel_type 5
-tap space
-poke cur_c 7
-poke cur_r 8
-poke sel_type 6
-tap space
-poke cur_c 11
-poke cur_r 8
-poke sel_type 1
-tap space
-poke cur_c 11
-poke cur_r 9
-poke sel_type 2
-tap space
-poke cur_c 14
-poke cur_r 9
-poke sel_type 3
-tap space
-poke cur_c 17
-poke cur_r 9
-poke sel_type 4
 tap space
 poke cur_c 5
-poke cur_r 11
-poke sel_type 5
-tap space
-poke cur_c 12
-poke cur_r 11
+poke cur_r 8
 poke sel_type 6
+tap space
+poke cur_c 9
+poke cur_r 8
+poke sel_type 1
 tap space
 run 10
 shot stress0

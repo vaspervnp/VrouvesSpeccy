@@ -193,7 +193,7 @@ title_page:
         ld a,(tmp_y)
         add a,2
         ld e,a
-        ld d,18
+        ld d,16
         call draw_sprite_raw
         ld a,(tmp_y)
         ld e,a
@@ -273,17 +273,17 @@ title_scene:
         pop hl
         inc hl
         ld a,d
-        add a,12
+        add a,16
         ld d,a
         pop bc
         djnz .c
         ld a,e
-        add a,12
+        add a,16
         ld e,a
         pop bc
         djnz .r
         ld de,ATTRS+(TSCENE_Y/8)*32+PF_COL
-        ld b,TSCENE_ROWS*12/8
+        ld b,TSCENE_ROWS*2
 .a:     push bc
         ld bc,PF_W
         ldir
@@ -316,40 +316,42 @@ title_scene:
         pop hl
         jr .s
 
-; sprite, x, y in the scene (from the CPC's title picture)
+; sprite, x, y in the scene (the first stage's bottom half)
 tscene_cast:
-        dw spr_tank_la
-        db 204,12
+        dw spr_flag_a
+        db 42,11
         dw spr_guard_a
-        db 168,12
+        db 128,34
         dw spr_guard_b
-        db 144,28
+        db 160,50
+        dw spr_tank_la
+        db 144,66
         dw spr_drone_a
-        db 96,4
+        db 192,18
         dw spr_drone_b
-        db 180,1
+        db 216,50
         dw spr_cretan
-        db 120,24
+        db 80,18
         dw spr_yiayia
-        db 168,24
-        dw spr_bride
-        db 108,36
+        db 144,18
         dw spr_psssst
-        db 216,0
+        db 112,16
+        dw spr_bride
+        db 112,50
         dw spr_cauldron
-        db 156,36
+        db 176,34
         dw spr_baker
-        db 84,36
+        db 192,66
         dw spr_bullet
-        db 145,28
+        db 100,30
         dw spr_laser
-        db 213,15
+        db 120,26
         dw spr_laser
-        db 210,17
+        db 124,30
         dw spr_dakos
-        db 99,26
+        db 180,58
         dw spr_spark_a
-        db 177,14
+        db 136,36
         dw 0
 
 A_GRASS equ #20                 ; black on green

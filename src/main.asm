@@ -29,7 +29,7 @@ LOAD_CLEAR  equ LOAD_BASE-1
 TAB_SCR     equ #5B00       ; screen line -> address: low bytes, high a page on
 TAB_BG      equ #5D00       ; playfield line -> background buffer
 SQUARES     equ #5F00       ; 64 x 16 bit
-ban_attr    equ #5F80       ; the banner rows' colours (90 bytes)
+ban_attr    equ #5F80       ; the banner rows' colours (120 bytes)
 IM2_TABLE   equ #FD00
 IM2_FILL    equ #FC
 IM2_JUMP    equ #FCFC
@@ -40,14 +40,14 @@ BANK_0      equ #10         ; 48 BASIC ROM, bank 0 at #C000
 BANK_1      equ #11
 LD_BYTES    equ #0562       ; the 48K ROM's tape loader, past its setup
 
-PF_X        equ 8           ; the playfield on the screen: 240 x 168
+PF_X        equ 8           ; the playfield on the screen: 240 x 160
 PF_Y        equ 8
 PF_COL      equ 1
 PF_W        equ 30          ; bytes a line
-PF_H        equ 168
-NCOL        equ 20
-NROW        equ 14
-TH          equ 12
+PF_H        equ 160
+NCOL        equ 15          ; cells of 16 x 16: 2 x 2 attribute cells each
+NROW        equ 10
+TH          equ 16
 DL_CAP      equ 63
 
 ; colours: ink + 8 * paper + bright
@@ -213,7 +213,7 @@ stage_attrs:
         djnz .r
         ld hl,WORKBUF+(BAN_AROW-1)*PF_W
         ld de,ban_attr
-        ld bc,3*PF_W
+        ld bc,4*PF_W
         ldir
         ret
 
@@ -456,7 +456,7 @@ work_end:
         assert lo(enemies) == 0 && EN_SZ*MAX_EN == 256 && lo(projs) == 0
         assert lo(CLIST) == 0
         assert work_end <= STACK_TOP-STACK_SIZE
-        assert (SQUARES+128) <= ban_attr && ban_attr+90 <= LOAD_BASE
+        assert (SQUARES+128) <= ban_attr && ban_attr+4*PF_W <= LOAD_BASE
 
         print "code+data: ",{hex}bin_start,"-",{hex}code_end," (",code_end-bin_start," bytes)"
         print "variables to ",{hex}bss_end,", buffers to ",{hex}work_end,", free ",STACK_TOP-STACK_SIZE-work_end

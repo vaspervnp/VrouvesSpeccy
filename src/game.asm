@@ -115,13 +115,14 @@ etype_tab:
         db 50,19,7,4,10,20,0,0          ; weed destroyer (tank)
 
 ; towers: cost, range, cooldown, damage, flags (bit0 hits air), projectile, sfx, sell
+; (the ranges, in pixels, are the CPC's 4/3: a cell is 16 lines, not 12)
 ttype_tab:
-        db 35,30,18,6,1,PT_BULLET,SFX_RIFLE,17          ; cretan
-        db 50,18,22,14,0,0,SFX_BASH,25                  ; yiayia
-        db 70,28,6,4,1,PT_PISTOL,SFX_PISTOL,35          ; bride
-        db 80,36,10,5,1,PT_LASER,SFX_LASER,40           ; psssst
-        db 110,22,32,8,0,0,SFX_PUFF,55                  ; cauldron
-        db 60,34,36,16,1,PT_DAKOS,SFX_THROW,30          ; baker
+        db 35,40,18,6,1,PT_BULLET,SFX_RIFLE,17          ; cretan
+        db 50,24,22,14,0,0,SFX_BASH,25                  ; yiayia
+        db 70,37,6,4,1,PT_PISTOL,SFX_PISTOL,35          ; bride
+        db 80,48,10,5,1,PT_LASER,SFX_LASER,40           ; psssst
+        db 110,29,32,8,0,0,SFX_PUFF,55                  ; cauldron
+        db 60,45,36,16,1,PT_DAKOS,SFX_THROW,30          ; baker
 
 tower_sprites:
         dw spr_cretan,spr_yiayia,spr_bride,spr_psssst,spr_cauldron,spr_baker
@@ -129,9 +130,9 @@ tower_sprites:
 
 proj_sprites:
         dw spr_bullet,spr_pistol,spr_laser,spr_dakos
-; x speed (pixels), y speed (lines)
+; x speed (2 pixels), y speed (lines): the CPC's 4/3
 proj_speed:
-        db 6,9, 7,10, 10,15, 3,5
+        db 8,12, 9,13, 13,20, 4,7
 
 ; effects: frame a, frame b, lifetime (8 bytes each)
 fx_tab:
@@ -247,9 +248,9 @@ game_init:
         ld (cd_sec),a
         ld a,25
         ld (cd_sub),a
-        ld a,7
+        ld a,9                  ; on the grass in every stage
         ld (cur_c),a
-        ld a,3
+        ld a,2
         ld (cur_r),a
         ld a,1
         ld (sel_type),a
@@ -591,8 +592,8 @@ try_build:
         ld (iy+T_CX),a
         ld a,(cur_r)
         ld (iy+T_ROW),a
-        call mul12
-        add a,6
+        call mul16
+        add a,8
         ld (iy+T_CY),a
         ld (iy+T_CD),8
         ld (iy+T_DIS),0
@@ -737,27 +738,25 @@ score_add:
 .s:     ld (score),hl
         ret
 
-; A * 12 (A < 22).  Uses C.
-mul12:
-        ld c,a
+; A * 16 (A < 16)
+mul16:
         add a,a
-        add a,c
+        add a,a
         add a,a
         add a,a
         ret
 
-; D,E = col,row -> HL = row*20+col.  Preserves DE.
+; D,E = col,row -> HL = row*15+col.  Preserves DE.
 cell_offset:
         push de
-        ld l,e
+        ld a,e
+        add a,a
+        add a,a
+        add a,a
+        add a,a
+        sub e
+        ld l,a
         ld h,0
-        add hl,hl
-        add hl,hl
-        ld b,h
-        ld c,l
-        add hl,hl
-        add hl,hl
-        add hl,bc
         ld e,d
         ld d,0
         add hl,de
@@ -883,10 +882,10 @@ draw_tile_bg:
 ; D,E = col,row -> D,E = x,y of the cell (pixels)
 cell_xy:
         ld a,d
-        call mul12
+        call mul16
         ld d,a
         ld a,e
-        call mul12
+        call mul16
         ld e,a
         ret
 
@@ -927,6 +926,8 @@ redraw_cell_nd:
 .dr:    pop de
         push de
         call cell_xy
+        inc e                   ; 12 lines high, in a cell of 16
+        inc e
         call draw_sprite_raw
 .done:  pop de
         ret
@@ -965,24 +966,20 @@ bg_pending:
         inc hl
         push hl
         call redraw_cell_nd
-        ld a,(ban_on)           ; keep a banner on top of rows 6-7
+        ld a,(ban_on)           ; keep a banner on top of its rows
         or a
         jr z,.nb
         ld a,e
-        sub 6
+        sub BAN_ROW
         cp 2
         jr nc,.nb
         ld a,1
         ld (ban_req),a
-.nb:    ld a,d                  ; x byte: 12 col / 8
-        add a,a
-        add a,d
-        srl a
-        ld d,a
+.nb:    sla d                   ; x byte: 2 a cell
         ld a,e
-        call mul12
+        call mul16
         ld e,a
-        ld bc,#0c02             ; 2 bytes x 12 lines
+        ld bc,#1002             ; 2 bytes x 16 lines
         call dirty_add_both
         pop hl
         pop bc
@@ -1305,7 +1302,7 @@ enemy_step:
         ld (ix+E_Y),a
         ld a,(ix+E_SUB)
         inc a
-        cp 3
+        cp 4                    ; x moves every fourth step (a cell is 16)
         jr c,.s
         ld a,(ix+E_X)
         add a,c
@@ -1435,9 +1432,9 @@ tank_crush:
         and 63
         ld d,a
         ld a,(ix+E_Y)
-        add a,6
+        add a,8
         ld e,0
-.dv:    sub 12
+.dv:    sub 16
         jr c,.dd
         inc e
         jr .dv
@@ -1620,15 +1617,14 @@ in_range:
         sub (iy+T_CX)
         jr nc,.p1
         neg
-.p1:    ld c,a
+.p1:    add a,a                 ; 4 pixels a unit
         add a,a
-        add a,c
         ld c,a
         ld a,(tr_range)
         cp c
         jr c,.no
         ld a,(ix+E_Y)
-        add a,6
+        add a,8
         sub (iy+T_CY)
         jr nc,.p2
         neg
@@ -1739,7 +1735,7 @@ spawn_proj:
         ld (hl),a
         inc hl
         ld a,(iy+T_CY)
-        sub 4
+        sub 6
         ld (hl),a
         inc hl
         push hl
@@ -1769,7 +1765,7 @@ spawn_proj:
         ld (hl),a
         inc hl
         ld a,(ix+E_Y)
-        add a,6
+        add a,8
         ld (hl),a
         inc hl
         ld a,(ix+E_GEN)
@@ -1810,7 +1806,7 @@ proj_step:
         add a,a
         ld (iy+P_TX),a
         ld a,(ix+E_Y)
-        add a,6
+        add a,8
         ld (iy+P_TY),a
         jr .mv
 .lost:  set 7,(iy+P_FLAG)
@@ -1925,11 +1921,11 @@ proj_step:
 .sp:    cp 5
         jr nc,.sn
         ld a,(ix+E_Y)
-        add a,6
+        add a,8
         sub (iy+P_Y)
         jr nc,.sq
         neg
-.sq:    cp 13
+.sq:    cp 17
         jr nc,.sn
         ld a,(iy+P_DMG)
         ld c,0
@@ -1965,18 +1961,18 @@ spawn_fx:
         cp 128
         jr c,.x1
         xor a
-.x1:    cp 77
+.x1:    cp 57
         jr c,.x2
-        ld a,76
+        ld a,56
 .x2:    ld (hl),a
         inc hl
         ld a,e
         cp 200
         jr c,.y1
         xor a
-.y1:    cp 157
+.y1:    cp 149
         jr c,.y2
-        ld a,156
+        ld a,148
 .y2:    ld (hl),a
         inc hl
         push hl
@@ -2046,12 +2042,13 @@ draw_enemies:
         inc hl
         ld h,(hl)
         ld l,a
-        ld a,(ix+E_X)           ; x 3 pixels a CPC byte
-        ld d,a
+        ld a,(ix+E_X)           ; x 4 pixels a unit
         add a,a
-        add a,d
+        add a,a
         ld d,a
-        ld e,(ix+E_Y)
+        ld a,(ix+E_Y)           ; 12 lines high, in a cell of 16
+        add a,2
+        ld e,a
         call draw_sprite
 .n:     ld de,EN_SZ
         add ix,de
@@ -2105,10 +2102,8 @@ draw_projs:
         bit 0,(iy+P_FLAG)
         jr z,.s
         ld hl,spr_pistol_crit
-.s:     ld a,(iy+P_X)           ; Mode 0 pixels: 1.5 of ours
-        ld d,a
-        srl a
-        add a,d
+.s:     ld a,(iy+P_X)           ; Mode 0 pixels: two of ours
+        add a,a
         ld d,a
         ld e,(iy+P_Y)
         call draw_sprite
@@ -2135,9 +2130,8 @@ draw_fx:
         ld h,(hl)
         ld l,a
         ld a,(iy+F_X)
-        ld d,a
         add a,a
-        add a,d
+        add a,a
         ld d,a
         ld e,(iy+F_Y)
         call draw_sprite
@@ -2153,11 +2147,7 @@ draw_flag:
         and 16
         jr z,.a
         ld hl,spr_flag_b
-.a:     ld de,(stage_flag)      ; x, y
-        ld a,d
-        add a,a
-        add a,d
-        ld d,a
+.a:     ld de,(stage_flag)      ; x, y (pixels)
         jp draw_sprite
 
 draw_cursor:
@@ -2194,11 +2184,12 @@ draw_cursor:
         jp draw_sprite
 
 ;------------------------------------------------------------------------------
-; banner messages (drawn into the background, rows 6-7: attribute rows
-; 10-12 of the screen)
+; banner messages (drawn into the background, cell rows 4-5: attribute rows
+; 9-12 of the screen)
 ;------------------------------------------------------------------------------
-BAN_Y equ 72
-BAN_H equ 24
+BAN_ROW equ 4                   ; cell rows 4-5
+BAN_Y equ BAN_ROW*16
+BAN_H equ 32
 BAN_AROW equ (PF_Y+BAN_Y)/8
 
 ; A = first string, C = second string (#FF none)
@@ -2224,7 +2215,7 @@ ban_do_draw:
         call fill_rect
         call text_normal
         ld a,(ban_id1)
-        ld e,PF_Y+BAN_Y+5
+        ld e,PF_Y+BAN_Y+8
         call print_id_centered
         ld a,(ban_id2)
         cp #ff
@@ -2260,7 +2251,7 @@ ban_do_draw:
         ld a,A_BAN1
         call attr_rect
         ld de,PF_COL*256+BAN_AROW+2
-        ld bc,1*256+PF_W
+        ld bc,2*256+PF_W
         ld a,A_BAN2
         call attr_rect
         ld de,BAN_Y
@@ -2281,7 +2272,7 @@ banner_clear:
         ret
 
 ban_do_clear:
-        ld e,6
+        ld e,BAN_ROW
 .r:     ld d,0
 .c:     push de
         call redraw_cell_nd
@@ -2292,11 +2283,11 @@ ban_do_clear:
         jr nz,.c
         inc e
         ld a,e
-        cp 8
+        cp BAN_ROW+2
         jr nz,.r
         ld hl,ban_attr          ; the stage's colours back
         ld de,ATTRS+BAN_AROW*32+PF_COL
-        ld b,3
+        ld b,4
 .a:     push bc
         ld bc,PF_W
         ldir

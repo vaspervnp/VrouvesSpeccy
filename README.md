@@ -58,17 +58,21 @@ game logic as it was; only the drawing, the HUD and the banner are new.
 
 ## On the Spectrum
 
-- **The playfield**: 20 × 14 cells of 12 × 12 pixels, 240 × 168 at (8, 8). A CPC cell is
-  8 × 12 Mode 0 pixels; each Mode 0 pixel becomes one or two Spectrum pixels (1, 2, 1, 2, 2, 1,
-  2, 1 across a cell, so a mirrored sprite stays a mirror). The CPC's coordinates are kept in
-  the logic (a CPC byte is 3 of our pixels) and converted only when drawing.
+- **The playfield**: 15 × 10 cells of 16 × 16 pixels, 240 × 160 at (8, 8): each cell is
+  exactly 2 × 2 attribute cells, so no two cells share a colour. The stages are the
+  Spectrum's own maps (`tools/zxworld.py`): the same seven places, defenders, invaders and
+  waves, on smaller roads laid out for this grid. A cell's art is the CPC's (8 × 12 Mode 0
+  pixels), doubled across and stretched 4/3 down; the buildings and their yards are cut from
+  the CPC's stage pictures into a block of cells of their own. The sprites are the CPC's,
+  twice as wide (a Mode 0 pixel is two of ours). The logic is the CPC's in these units: x in
+  4 pixels (4 a cell, as on the CPC), y in lines (16 a cell instead of 12); ranges and shot
+  speeds are the CPC's 4/3, so they reach as many cells.
 - **Colour**: every attribute cell of the playfield has black ink and a paper of its own: the
   colour most of its pixels have (`tools/zxcolour.py`), the others black, paper or a
   checkerboard of both by how dark they are. The sprites are drawn in ink with a ring of
   paper round them (their mask), so they show on any part of the village with no attribute
-  clash; the Kafenio and the other buildings, where hardly anything walks, take any two
-  colours a cell.
-- **Tiles**: the stages are drawn from 343 tiles of 12 × 12 shared by all of them (18 bytes
+  clash; the buildings' blocks, where hardly anything walks, take any two colours a cell.
+- **Tiles**: the stages are drawn from 206 tiles of 16 × 16 shared by all of them (32 bytes
   each); a stage has its tile map, cell types, sacks, paths, waves and texts packed (LZ,
   `tools/lz.py`, `src/lz.asm`), and its attributes.
 - **No flicker**: the playfield is drawn in a work buffer and only what changed is copied to the
@@ -78,7 +82,7 @@ game logic as it was; only the drawing, the HUD and the banner are new.
 - **The pace**: as on the CPC, a frame is drawn every fourth 50 Hz frame (12.5 fps) with two
   25 Hz ticks of logic in it. In the heaviest waves a pass takes about 4 frames on average.
 - **Text**: the CPC's 3×6 font, 64 columns; the HUD is a line above the playfield and two
-  below it, a message of two lines that does not fit side by side takes turns.
+  at the bottom of the screen, a message of two lines that does not fit side by side takes turns.
 - **Sound**: the CPC's player, stepped by the interrupt into a shadow of the AY's registers.
   On a 128K they go to the AY (the periods scaled from the CPC's 1 MHz to 1.7734 MHz); on a
   48K the beeper plays the effect, or else the melody, in the time each frame leaves free
@@ -86,9 +90,9 @@ game logic as it was; only the drawing, the HUD and the banner are new.
 - **The ending**: on a 128K, the loader puts the picture in bank 1; a 48K reads it off the tape
   with the ROM's LD-BYTES (past its BREAK check, so SPACE just skips it).
 
-Memory: `#5B00` line tables, `#6000` the code and data (28.8K: tiles 6.2K, stages 7K, text
-2.6K, sprites 1.7K, code 9.2K), then entities, variables, the current stage, the save buffer
-and the work buffer up to `#F650`; the IM 2 table at `#FD00`.
+Memory: `#5B00` line tables, `#6000` the code and data (tiles 6.6K, stages 5.3K, text 2.6K,
+sprites 1.7K, code 9.2K), then entities, variables, the current stage, the save buffer and
+the work buffer up to `#EF60`; the IM 2 table at `#FD00`.
 
 ## Building
 
@@ -117,7 +121,8 @@ build) builds two dozen defenders and runs a late wave. `tests/full.py` plays a 
 src/        main (memory map, start, stages, ending), hw (interrupt, keys, AY, paging),
             sound, gfx (buffers, sprites, tiles, text), game (the rules, the HUD), title
             (pages, high scores), lz, loader.bas
-tools/      zxdata.py (all the data), zxcolour.py (the colours, the conversions), world.py,
+tools/      zxdata.py (all the data), zxworld.py (the stages' maps and pictures),
+            zxcolour.py (the colours, the conversions), world.py,
             art.py, font.py, texts.py (the CPC's world), lz.py, mktap.py, mkz80.py,
             zxrun.py, zxcheck.py (+ zxemu/), manual_images.py
 assets/     the loading picture and the ending (from the CPC version)

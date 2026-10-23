@@ -414,97 +414,37 @@ sh1_i:  repeat 7
         ret
 
 ;------------------------------------------------------------------------------
-; tiles: 12 x 12, 18 bytes (per pair of rows a, b: a's first 8 pixels, b's,
-; then a's last 4 in the high nibble and b's in the low)
+; tiles: 16 x 16, two bytes a row
 ;------------------------------------------------------------------------------
-; HL = tile, D = x (pixels, a multiple of 4), E = y ; current target
+; HL = tile, D = x (pixels, a multiple of 8), E = y ; current target
 draw_tile:
-        ld a,d
-        and 4
-        ld (tl_odd),a
         ld a,d
         rrca
         rrca
         rrca
         and 31
         ld (spr_xb),a
-        ld a,e
-        ld (spr_y),a
-        ld b,6
-.pair:  push bc
-        ld b,(hl)               ; row a
-        inc hl
-        ld c,(hl)               ; row b
-        inc hl
-        ld a,(hl)               ; their last 4 pixels
-        inc hl
+        ld b,16
+.row:   push bc
         push hl
-        push bc
-        push af
-        and #f0
-        ld c,a
-        call tile_row
-        pop af
-        add a,a
-        add a,a
-        add a,a
-        add a,a
-        pop bc
-        ld b,c
-        ld c,a
-        call tile_row
-        pop hl
-        pop bc
-        djnz .pair
-        ret
-
-; B = 8 pixels, C = 4 more (bits 7-4), on line spr_y (moved on)
-tile_row:
-        ld a,(spr_y)
-        ld e,a
-        inc a
-        ld (spr_y),a
-        push bc
         call row_base
-        pop bc
         ld a,(spr_xb)
         add a,l
-        ld l,a
-        jr nc,.n
-        inc h
-.n:     ld a,(tl_odd)
-        or a
-        jr nz,.odd
-        ld (hl),b
-        inc hl
+        ld c,a
+        adc a,h
+        sub c
+        ld b,a                  ; BC = the line's two bytes
+        pop hl
         ld a,(hl)
-        and #0f
-        or c
-        ld (hl),a
-        ret
-.odd:   ld a,b                  ; half way into the byte
-        rrca
-        rrca
-        rrca
-        rrca
-        ld d,a
-        and #0f
-        ld e,a
-        ld a,(hl)
-        and #f0
-        or e
-        ld (hl),a
+        ld (bc),a
         inc hl
-        ld a,d
-        and #f0
-        ld d,a
-        ld a,c
-        rrca
-        rrca
-        rrca
-        rrca
-        or d
-        ld (hl),a
+        inc bc
+        ld a,(hl)
+        ld (bc),a
+        inc hl
+        inc e
+        pop bc
+        djnz .row
         ret
 
 ;------------------------------------------------------------------------------

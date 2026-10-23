@@ -110,8 +110,8 @@ def playfield(pix, cw, ch, x_org=0, y_org=0, free=()):
                     cnt[p] = cnt.get(p, 0) + 1
             # the paper: the colour most pixels have (shades do not vote)
             votes = {}
-            for p, n in cnt.items():
-                votes[PEN[p]] = votes.get(PEN[p], 0) + n
+            for p, n in cnt.items():     # stone counts double: walls stay grey
+                votes[PEN[p]] = votes.get(PEN[p], 0) + n * (2 if p == 'e' else 1)
             if votes:
                 (pc, pb) = max(votes.items(), key=lambda kv: (kv[1], kv[0]))[0]
                 ppen = max((p for p in cnt if PEN[p] == (pc, pb)), key=lambda p: cnt[p])
@@ -228,12 +228,15 @@ def render(bitmap, attrs, scale=2):
     return im.resize((256 * scale, 192 * scale), Image.NEAREST)
 
 
-def sprite(rows, halo=True, outline=True):
+def sprite(rows, halo=True, outline=True, double=False):
     """CPC sprite rows ('.' clear) -> (mask rows, ink rows) of 0/1 at the
     Spectrum's width: ink where the pen is dark, and round the edge of the
     shape (outline); the mask also takes a ring of paper round it (halo), so
     the sprite stands out from the background's ink."""
-    wide = widen([list(r) for r in rows], tile=len(rows[0]))
+    if double:              # a Mode 0 pixel, two of ours
+        wide = [[ch for ch in r for _ in (0, 1)] for r in rows]
+    else:
+        wide = widen([list(r) for r in rows], tile=len(rows[0]))
     h, w = len(wide), len(wide[0])
     shape = [[1 if wide[y][x] != '.' else 0 for x in range(w)] for y in range(h)]
 

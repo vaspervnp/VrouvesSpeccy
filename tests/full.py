@@ -12,7 +12,7 @@ import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, 'tools'))
-import world  # noqa: E402
+import zxworld as world  # noqa: E402  (the Spectrum's maps)
 import zxrun  # noqa: E402
 
 
@@ -25,7 +25,7 @@ def tap(spec, keys, hold=2, gap=12):
 
 def cells_by_road(k):
     st = world.STAGES[k]
-    grid = world.carve_path(st.map, st.ground)
+    grid = world.carve_path(st.map, st.ground)  # 15 x 10
     out = []
     for r in range(world.MH):
         for c in range(world.MW):

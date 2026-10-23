@@ -53,13 +53,13 @@ def screens():
     spec.run_frames(20)
     S = spec.resolve
     spec.poke(S("funds"), 250)
-    for c, r, t in ((4, 2, 1), (9, 3, 4), (6, 5, 1), (13, 5, 4), (10, 8, 1), (16, 9, 1)):
+    for c, r, t in ((9, 2, 1), (11, 2, 4), (2, 2, 1), (5, 4, 4), (9, 6, 1), (12, 8, 1)):
         spec.poke(S("cur_c"), c)
         spec.poke(S("cur_r"), r)
         spec.poke(S("sel_type"), t)
         tap(["space"])
     spec.poke(S("cur_c"), 12)
-    spec.poke(S("cur_r"), 6)
+    spec.poke(S("cur_r"), 4)
     tap(["n"])
     while spec.peek(S("wave_num")) < 3:
         if spec.peek(S("wave_state")) == 0:
@@ -82,7 +82,7 @@ def main():
         icon(spr, os.path.join(IMG, name + ".png"))
     for k in range(1, 8):       # the playfield of the previews (3x)
         im = Image.open(os.path.join(ROOT, "build", "preview", "stage%d.png" % k))
-        im.crop((24, 24, 24 + 720, 24 + 504)).save(os.path.join(IMG, "stage%d.png" % k))
+        im.crop((24, 24, 24 + 720, 24 + 480)).save(os.path.join(IMG, "stage%d.png" % k))
     screens()
     print("docs/img: written")
 

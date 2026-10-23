@@ -11,8 +11,9 @@
   build/ending.scr     the ending (assets/ending_sceneFinal.png)
   build/preview/*.png  how it all looks on the Spectrum
 
-A map cell is 12 x 12 pixels: the playfield, 20 x 14 cells, is 240 x 168,
-at x = 8, y = 8 of the screen.  See zxcolour.py for the colours.
+A map cell is 16 x 16 pixels, 2 x 2 attribute cells: the playfield, 15 x 10
+cells (tools/zxworld.py), is 240 x 160, at x = 8, y = 8 of the screen.  See
+zxcolour.py for the colours.
 """
 import os
 import sys
@@ -26,16 +27,17 @@ import lz  # noqa: E402
 import texts  # noqa: E402
 import world  # noqa: E402
 import zxcolour as zc  # noqa: E402
+import zxworld as zw  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BUILD = os.path.join(ROOT, "build")
 GEN = os.path.join(BUILD, "gen")
 PREVIEW = os.path.join(BUILD, "preview")
 
-MW, MH = world.MW, world.MH
-CW = 12                         # a cell, Spectrum pixels (both ways)
+MW, MH = zw.MW, zw.MH
+CW = zw.CS                      # a cell, Spectrum pixels (both ways)
 PF_X, PF_Y = 8, 8               # the playfield on the screen
-ACOLS, AROWS = 30, 21           # its attribute cells
+ACOLS, AROWS = 30, 20           # its attribute cells
 
 
 def db(data, per=16):
@@ -181,41 +183,65 @@ def text_data():
 
 
 # ------------------------------------------------------------------ sprites
-CURSOR_BAD = [          # Spectrum pixels: the cursor where nothing can be built
-    "###......###",
-    "#..........#",
-    "#.#......#.#",
-    "...#....#...",
-    "....#..#....",
-    ".....##.....",
-    ".....##.....",
-    "....#..#....",
-    "...#....#...",
-    "#.#......#.#",
-    "#..........#",
-    "###......###",
+CURSOR_OK = [          # Spectrum pixels: the cursor where a defender can go
+    "####......####",
+    "#............#",
+    "#............#",
+    "#............#",
+    "..............",
+    "..............",
+    "..............",
+    "..............",
+    "..............",
+    "..............",
+    "#............#",
+    "#............#",
+    "#............#",
+    "####......####",
 ]
 CURSOR_OK_B = [         # the other frame of the blinking cursor
-    "............",
-    ".###....###.",
-    ".#........#.",
-    ".#........#.",
-    "............",
-    "............",
-    "............",
-    "............",
-    ".#........#.",
-    ".#........#.",
-    ".###....###.",
-    "............",
+    "..............",
+    ".####....####.",
+    ".#..........#.",
+    ".#..........#.",
+    "..............",
+    "..............",
+    "..............",
+    "..............",
+    "..............",
+    "..............",
+    ".#..........#.",
+    ".#..........#.",
+    ".####....####.",
+    "..............",
 ]
+CURSOR_BAD = [          # where nothing can be built
+    "####......####",
+    "#............#",
+    "#.#........#.#",
+    "...#......#...",
+    "....#....#....",
+    ".....#..#.....",
+    "......##......",
+    "......##......",
+    ".....#..#.....",
+    "....#....#....",
+    "...#......#...",
+    "#.#........#.#",
+    "#............#",
+    "####......####",
+]
+CURSOR_X, CURSOR_Y = 1, 1       # its place in the cell
 SMALL = {"spr_bullet", "spr_pistol", "spr_pistol_crit", "spr_laser", "spr_dakos",
          "spr_spark_a", "spr_spark_b"}
 NO_HALO = {"spr_flag_a", "spr_flag_b", "spr_puff_a", "spr_puff_b", "spr_poof_b", "spr_boom_b"}
 
 
 def zx_rows(rows):
-    """'#' = ink rows (Spectrum pixels) -> (mask, ink) with a halo"""
+    """'#' = ink rows (Spectrum pixels) -> (mask, ink) with a halo, the
+    rows padded to 16 x 16 with the cursor's offset"""
+    rows = ["." * CURSOR_X + r + "." * (16 - CURSOR_X - len(r)) for r in rows]
+    rows = ["." * 16] * CURSOR_Y + rows + ["." * 16] * (16 - CURSOR_Y - len(rows))
     h, w = len(rows), len(rows[0])
     ink = [[1 if rows[y][x] == '#' else 0 for x in range(w)] for y in range(h)]
     mask = [[1 if any(0 <= y + dy < h and 0 <= x + dx < w and ink[y + dy][x + dx]
@@ -227,14 +253,15 @@ def zx_rows(rows):
 def sprite_mono(name, rows):
     if name == "spr_cursor_bad":
         return zx_rows(CURSOR_BAD)
+    if name == "spr_cursor_ok":
+        return zx_rows(CURSOR_OK)
     if name == "spr_cursor_ok_b":
         return zx_rows(CURSOR_OK_B)
     if name in SMALL:       # shots and sparks: all ink
-        mask, ink = zc.sprite(rows, halo=True, outline=True)
-        wide = zc.widen([list(r) for r in rows], tile=len(rows[0]))
-        ink = [[1 if c != '.' else 0 for c in r] for r in wide]
+        mask, ink = zc.sprite(rows, halo=True, outline=True, double=True)
+        ink = [[1 if c != '.' else 0 for c in r for _ in (0, 1)] for r in rows]
         return mask, ink
-    return zc.sprite(rows, halo=name not in NO_HALO)
+    return zc.sprite(rows, halo=name not in NO_HALO, double=True)
 
 
 def bits_to_bytes(row, nb):
@@ -279,79 +306,54 @@ def sprite_data():
 
 
 # ------------------------------------------------------------------ stages
-def tile_rows(cv, c, r, y0=0):
-    """the pens of a cell, as pen characters"""
-    return tuple(tuple(zc.PEN_OF[v] for v in cv.p[y0 + r * 12 + y][c * 8:c * 8 + 8])
-                 for y in range(12))
-
-
-def free_cells(grid, rows=MH):
-    """attribute cells wholly on the building or its yard ('K', 'P'): any
-    two colours there"""
-    out = set()
-    for cy in range(rows * 12 // 8):
-        for cx in range(ACOLS):
-            if all(grid[(cy * 8 + dy) // 12][(cx * 8 + dx) // 12] in 'KP'
-                   for dy in (0, 7) for dx in (0, 7)):
-                out.add((cx, cy))
-    return out
-
-
-def convert(cv, grid, rows=MH):
-    """the CPC picture -> (bitmap rows, attributes) of the Spectrum"""
-    pens = [[zc.PEN_OF[v] for v in row] for row in cv.p[:rows * 12]]
-    return zc.playfield(zc.widen(pens), ACOLS, rows * 12 // 8, PF_X, PF_Y, free_cells(grid, rows))
-
-
 class TileSet:
-    """Spectrum tiles (12 x 12 bits) shared by every stage"""
+    """Spectrum tiles (16 x 16 bits, 32 bytes) shared by every stage"""
 
     def __init__(self):
         self.index, self.tiles = {}, []
 
     def add(self, bits, c, r):
-        t = tuple(tuple(bits[r * 12 + y][c * 12:c * 12 + 12]) for y in range(12))
+        t = tuple(tuple(bits[r * CW + y][c * CW:c * CW + CW]) for y in range(CW))
         if t not in self.index:
             self.index[t] = len(self.tiles)
             self.tiles.append(t)
         return self.index[t]
 
     def bytes(self):
-        """18 bytes a tile: per pair of rows a, b: a's first 8 pixels, b's,
-        then a's last 4 (high nibble) and b's (low)"""
         out = []
         for t in self.tiles:
-            for y in range(0, 12, 2):
-                a, b = t[y], t[y + 1]
-                out.append(bits_to_bytes(a[:8], 1)[0])
-                out.append(bits_to_bytes(b[:8], 1)[0])
-                out.append(bits_to_bytes(a[8:12], 1)[0] | (bits_to_bytes(b[8:12], 1)[0] >> 4))
+            for row in t:
+                out += bits_to_bytes(row, 2)
         return out
 
 
 def path_data(wps):
+    """the path as the game walks it: x (4 pixels a unit), y, the step in
+    the cell (x moves every fourth), steps left, then (dx, dy, steps)..."""
     segs = []
     for (a_, b_) in zip(wps, wps[1:]):
         (c0, r0), (c1, r1) = a_, b_
         dc, dr = c1 - c0, r1 - r0
         assert dc == 0 or dr == 0 or abs(dc) == abs(dr)
-        n = 12 * max(abs(dc), abs(dr))
+        n = CW * max(abs(dc), abs(dr))
         assert n < 256
         segs.append(((dc > 0) - (dc < 0), (dr > 0) - (dr < 0), n))
     c0, r0 = wps[0]
-    x0, y0, sub0, rem0 = c0 * 4, r0 * 12, 0, segs[0][2]
-    while y0 < 2:
-        dx, dy, _ = segs[0]
-        y0 += dy
-        sub0 += 1
-        if sub0 == 3:
-            sub0 = 0
-            x0 += dx
-        rem0 -= 1
-    data = [x0, y0, sub0, rem0]
+    data = [c0 * 4, r0 * CW, 0, segs[0][2]]
     for (dx, dy, n) in segs:
         data += [dx & 0xFF, dy & 0xFF, n]
     return data + [0, 0, 0]
+
+
+def path_steps(wps):
+    """pixel positions along a path (the previews)"""
+    pts = []
+    for (a_, b_) in zip(wps, wps[1:]):
+        (c0, r0), (c1, r1) = a_, b_
+        n = CW * max(abs(c1 - c0), abs(r1 - r0))
+        for k in range(n):
+            pts.append((round((c0 + (c1 - c0) * k / n) * CW), round((r0 + (r1 - r0) * k / n) * CW)))
+    return pts
 
 
 def unlock_data(k, ids):
@@ -365,12 +367,11 @@ def unlock_data(k, ids):
 
 def stage_data(ids, stage_enc, ts):
     built = []
-    for k, st in enumerate(world.STAGES):
-        grid = world.carve_path(st.map, st.ground)
-        full = world.render_background(st, grid, True)
-        empty = world.render_background(st, grid, False)
-        bits, attrs = convert(full, grid)
-        ebits, _ = convert(empty, grid)
+    for k, st in enumerate(zw.STAGES):
+        full, grid = zw.render(k, True)
+        empty, _ = zw.render(k, False)
+        bits, attrs = zc.playfield(full, ACOLS, AROWS, PF_X, PF_Y, zw.free_cells(k))
+        ebits, _ = zc.playfield(empty, ACOLS, AROWS, PF_X, PF_Y, zw.free_cells(k))
         local, tlist, tmap, cmap = {}, [], [], []
 
         def lid(g):
@@ -382,7 +383,7 @@ def stage_data(ids, stage_enc, ts):
             for c in range(MW):
                 tmap.append(lid(ts.add(bits, c, r)))
                 t = grid[r][c]
-                cmap.append(0 if t in '.F' else 1 if t == '#' else 3 if t in 'KP' else 2)
+                cmap.append(0 if t in '.F' else 1 if t == '#' else 3 if t == 'K' else 2)
         sacks = []
         for (c, r) in st.sacks:
             f = tmap[r * MW + c]
@@ -392,13 +393,13 @@ def stage_data(ids, stage_enc, ts):
         assert len(tlist) < 256
         waves = getattr(world, st.waves)
         assert len(waves) == len(world.WAVES1)
-        built.append(dict(tmap=tmap, cmap=cmap, sacks=sacks, flag=st.flag, tlist=tlist,
+        built.append(dict(tmap=tmap, cmap=cmap, sacks=sacks, flag=zw.flag_xy(k), tlist=tlist,
                           pg=path_data(st.ground), pa=path_data(st.air), attrs=attrs,
                           waves=[[v for (t, n, iv) in w for v in (t, n, iv)] + [0] for w in waves],
                           unlock=unlock_data(k, ids), grid=grid, bits=bits))
     # the record of a stage, unpacked to STAGE_AREA: every section as big as
     # the biggest stage's
-    sections = [("tilemap", 280), ("cellmap", 280), ("sack_cells", 20), ("stage_flag", 2),
+    sections = [("tilemap", MW * MH), ("cellmap", MW * MH), ("sack_cells", 20), ("stage_flag", 2),
                 ("stage_unlock", 4),
                 ("path_ground", max(len(b["pg"]) for b in built)),
                 ("path_air", max(len(b["pa"]) for b in built)),
@@ -429,7 +430,7 @@ def stage_data(ids, stage_enc, ts):
         put("tilemap", b["tmap"])
         put("cellmap", b["cmap"])
         put("sack_cells", b["sacks"])
-        put("stage_flag", list(b["flag"])[::-1])     # y, x: LD DE,(nn) gives D = x
+        put("stage_flag", list(b["flag"])[::-1])     # y, x (pixels): LD DE,(nn) gives D = x
         put("stage_unlock", b["unlock"])
         put("path_ground", b["pg"])
         put("path_air", b["pa"])
@@ -449,38 +450,35 @@ def stage_data(ids, stage_enc, ts):
         S.append("st%d_attr:" % k)
         S += db(att)
         S.append("st%d_tiles:          ; %d tiles" % (k, len(b["tlist"])))
-        S += ["        dw " + ",".join("tiles+%d" % (18 * g) for g in b["tlist"][i:i + 8])
+        S += ["        dw " + ",".join("tiles+%d" % (32 * g) for g in b["tlist"][i:i + 8])
               for i in range(0, len(b["tlist"]), 8)]
         total += len(rec) + len(att) + 2 * len(b["tlist"])
     print("stages: %d bytes of records, attributes and tile lists" % total)
     return S, built
 
 
-# the first title page's scene, rows 8-13 of a Kafenio of its own
-def title_scene(ts):
-    grid = [list("." * MW) for _ in range(MH)]
-    for j, r in enumerate(world.TART_SCENE):
-        grid[8 + j] = list(r)
-    cv = world.render_background(world.STAGES[0], grid, True)
-    rows = len(world.TART_SCENE)
-    sub = world.Canvas(world.PFW, rows * 12, 0)
-    for y in range(rows * 12):
-        sub.p[y] = cv.p[8 * 12 + y]
-    bits, attrs = convert(sub, grid[8:], rows)
+# the first title page's scene: the bottom half of the first stage
+TSCENE_R0 = 5
+
+
+def title_scene(ts, built):
+    bits, attrs = built[0]["bits"], built[0]["attrs"]
+    rows = MH - TSCENE_R0
     local, tlist, tmap = {}, [], []
-    for r in range(rows):
+    for r in range(TSCENE_R0, MH):
         for c in range(MW):
             g = ts.add(bits, c, r)
             if g not in local:
                 local[g] = len(tlist)
                 tlist.append(g)
             tmap.append(local[g])
+    att = attrs[TSCENE_R0 * 2 * ACOLS:]
     A = ["TSCENE_ROWS equ %d" % rows, "tscene:             ; tile map, then attributes (packed)"]
-    A += db(lz.pack(bytes(tmap + attrs)))
+    A += db(lz.pack(bytes(tmap + att)))
     A.append("tscene_tiles:")
-    A += ["        dw " + ",".join("tiles+%d" % (18 * g) for g in tlist[i:i + 8])
+    A += ["        dw " + ",".join("tiles+%d" % (32 * g) for g in tlist[i:i + 8])
           for i in range(0, len(tlist), 8)]
-    return A, (bits, attrs)
+    return A
 
 
 # ------------------------------------------------------------------ sound
@@ -585,11 +583,12 @@ def ending_screen():
 
 
 # ------------------------------------------------------------------ previews
-def preview_stage(b, mono, path):
+def preview_stage(k, b, mono, path):
     im = Image.new("RGB", (256, 192))
     bits, attrs = b["bits"], b["attrs"]
-    for y in range(168):
-        for x in range(240):
+    PH = MH * CW
+    for y in range(PH):
+        for x in range(MW * CW):
             a = attrs[(y // 8) * ACOLS + x // 8]
             br = a >> 6 & 1
             col = zc.RGB[br][a & 7] if bits[y][x] else zc.RGB[br][a >> 3 & 7]
@@ -599,19 +598,27 @@ def preview_stage(b, mono, path):
         mask, ink = mono[name]
         for j in range(len(mask)):
             for i in range(len(mask[0])):
-                if mask[j][i] and 0 <= x + i < 240 and 0 <= y + j < 168:
+                if mask[j][i] and 0 <= x + i < MW * CW and 0 <= y + j < PH:
                     a = attrs[((y + j) // 8) * ACOLS + (x + i) // 8]
                     br = a >> 6 & 1
                     im.putpixel((PF_X + x + i, PF_Y + y + j),
                                 zc.RGB[br][a & 7] if ink[j][i] else zc.RGB[br][a >> 3 & 7])
-    gp = world.path_steps(world.STAGES[0].ground)
-    for name, (x, y) in (("spr_guard_a", gp[100]), ("spr_tank_la", gp[40]),
-                         ("spr_drone_a", gp[160]), ("spr_guard_b", gp[300])):
-        put(name, x * 3, y)
-    for name, c, r in (("spr_cretan", 4, 2), ("spr_yiayia", 9, 3), ("spr_bride", 13, 5),
-                       ("spr_psssst", 6, 5), ("spr_cauldron", 10, 8), ("spr_baker", 12, 11),
-                       ("spr_cursor_ok", 7, 3), ("spr_cursor_bad", 3, 3)):
-        put(name, c * 12, r * 12)
+    gp = path_steps(zw.STAGES[k].ground)
+    ap = path_steps(zw.STAGES[k].air)
+    for name, (x, y) in (("spr_guard_a", gp[len(gp) // 5]), ("spr_tank_la", gp[len(gp) // 2]),
+                         ("spr_drone_a", ap[len(ap) // 2]), ("spr_guard_b", gp[3 * len(gp) // 4])):
+        put(name, x, y + 2)
+    placed = 0
+    for r in range(MH):
+        for c in range(MW):
+            if b["cmap"][r * MW + c] == 0 and (c * 7 + r * 3) % 11 == 0 and placed < 6:
+                put(("spr_cretan", "spr_yiayia", "spr_bride", "spr_psssst", "spr_cauldron",
+                     "spr_baker")[placed], c * CW, r * CW + 2)
+                placed += 1
+    fx, fy = b["flag"]
+    put("spr_flag_a", fx, fy)
+    put("spr_cursor_ok", 7 * CW, 3 * CW)
+    put("spr_cursor_bad", 8 * CW, 3 * CW)
     im.resize((768, 576), Image.NEAREST).save(path)
 
 
@@ -621,7 +628,7 @@ def main():
     T, ids, stage_enc = text_data()
     ts = TileSet()
     S, built = stage_data(ids, stage_enc, ts)
-    TS, _ = title_scene(ts)
+    TS = title_scene(ts, built)
     SP, mono = sprite_data()
     tb = ts.bytes()
     print("tiles: %d, %d bytes" % (len(ts.tiles), len(tb)))
@@ -629,12 +636,12 @@ def main():
     # what is read every frame (the sprites) last: above #8000, out of the
     # memory the ULA slows down
     A += font_data() + [""] + T + [""]
-    A += ["NUM_TILES equ %d" % len(ts.tiles), "tiles:"] + db(tb, 18) + [""]
+    A += ["NUM_TILES equ %d" % len(ts.tiles), "tiles:"] + db(tb, 16) + [""]
     A += S + [""] + TS + [""] + sound_data() + [""] + SP
     with open(os.path.join(GEN, "data.asm"), "w") as f:
         f.write("\n".join(A) + "\n")
     for k, b in enumerate(built):
-        preview_stage(b, mono, os.path.join(PREVIEW, "stage%d.png" % (k + 1)))
+        preview_stage(k, b, mono, os.path.join(PREVIEW, "stage%d.png" % (k + 1)))
     if "--pictures" in sys.argv or not os.path.exists(os.path.join(BUILD, "loading.scr")):
         for name, scr in (("loading", loading_screen()), ("ending", ending_screen())):
             with open(os.path.join(BUILD, name + ".scr"), "wb") as f:
