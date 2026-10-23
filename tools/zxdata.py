@@ -362,7 +362,7 @@ def unlock_data(k, ids):
         ann = [ids.index(l1), ids.index(l2)]
     else:
         types, ann = {1, 2, 3, 4, 5, 6}, [0xFF, 0xFF]
-    return [sum(1 << (t - 1) for t in types)] + ann + [world.STAGES[k].toughness]
+    return [sum(1 << (t - 1) for t in types)] + ann + [zw.STAGES[k].toughness]
 
 
 def stage_data(ids, stage_enc, ts):

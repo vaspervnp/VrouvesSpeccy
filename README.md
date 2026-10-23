@@ -61,7 +61,8 @@ game logic as it was; only the drawing, the HUD and the banner are new.
 - **The playfield**: 15 × 10 cells of 16 × 16 pixels, 240 × 160 at (8, 8): each cell is
   exactly 2 × 2 attribute cells, so no two cells share a colour. The stages are the
   Spectrum's own maps (`tools/zxworld.py`): the same seven places, defenders, invaders and
-  waves, on smaller roads laid out for this grid. A cell's art is the CPC's (8 × 12 Mode 0
+  waves, on smaller roads laid out for this grid; a short road is easier to cover, so the
+  invaders come with the health of a few waves later (`harder`). A cell's art is the CPC's (8 × 12 Mode 0
   pixels), doubled across and stretched 4/3 down; the buildings and their yards are cut from
   the CPC's stage pictures into a block of cells of their own. The sprites are the CPC's,
   twice as wide (a Mode 0 pixel is two of ours). The logic is the CPC's in these units: x in

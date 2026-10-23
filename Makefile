@@ -76,8 +76,9 @@ test: $(B)/vrouves.bin $(B)/vrouves.sym $(B)/ending.scr
 	@set -e; for m in 48 128; do for t in tests/*.txt; do \
 	  case $$t in tests/stress.txt) continue;; esac; \
 	  echo "== $$t ($$m K)"; \
-	  $(PYTHON) tools/zxrun.py $(B)/vrouves.bin --sym $(B)/vrouves.sym --model $$m --kempston \
-	    --script $$t --out $(B)/shots/$$m | grep -v '^shot'; \
+	  out=$$($(PYTHON) tools/zxrun.py $(B)/vrouves.bin --sym $(B)/vrouves.sym --model $$m \
+	    --kempston --script $$t --out $(B)/shots/$$m); \
+	  printf '%s\n' "$$out" | grep -v '^shot' || true; \
 	done; done
 	@for m in 48 128; do echo "== a whole game ($$m K)"; \
 	  $(PYTHON) tests/full.py --model $$m || exit 1; done
