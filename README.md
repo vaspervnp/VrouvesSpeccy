@@ -70,9 +70,13 @@ game logic as it was; only the drawing, the HUD and the banner are new.
   speeds are the CPC's 4/3, so they reach as many cells.
 - **Colour**: every attribute cell of the playfield has black ink and a paper of its own: the
   colour most of its pixels have (`tools/zxcolour.py`), the others black, paper or a
-  checkerboard of both by how dark they are. The sprites are drawn in ink with a ring of
-  paper round them (their mask), so they show on any part of the village with no attribute
-  clash; the buildings' blocks, where hardly anything walks, take any two colours a cell.
+  checkerboard of both by how dark they are; the buildings' blocks, where hardly anything
+  walks, take any two colours a cell. The sprites are drawn in ink with a ring of paper round
+  them (their mask). A defender colours its own cell, an ink for the top and one for the
+  bottom (the Cretan red over blue...): no clash, as the cell is its alone. An invader
+  colours the attribute cells it covers, magenta drones, blue guards, red tanks: the
+  Spectrum's own clash, the black of the grass or the road round it takes its colour. The
+  playfield's colours are kept (`PF_AT`), and each frame the invaders' cells get them back.
 - **Tiles**: the stages are drawn from 206 tiles of 16 × 16 shared by all of them (32 bytes
   each); a stage has its tile map, cell types, sacks, paths, waves and texts packed (LZ,
   `tools/lz.py`, `src/lz.asm`), and its attributes.

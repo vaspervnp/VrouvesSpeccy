@@ -899,10 +899,17 @@ redraw_cell_nd:
         call cell_ptr
         ld a,(hl)
         bit 7,a
-        jr z,.done
+        jr z,.plain
         and #1f
         call tower_ptr
         ld a,(hl)
+        pop de
+        push de
+        push af
+        push hl
+        call cell_colour
+        pop hl
+        pop af
         ld bc,T_DIS
         add hl,bc
         ld c,(hl)
@@ -931,6 +938,13 @@ redraw_cell_nd:
         call draw_sprite_raw
 .done:  pop de
         ret
+.plain: cp 3                    ; the building's block keeps its own colours
+        jr z,.done
+        pop de
+        push de
+        xor a
+        call cell_colour
+        jr .done
 
 ; D,E = col,row : the cell to be drawn again, at the next frame (with the
 ; sprites off the playfield: bg_pending).  Preserves DE.
@@ -995,6 +1009,251 @@ bg_pending:
         dec b
         jp nz,ban_do_clear
         jp ban_do_draw
+
+;------------------------------------------------------------------------------
+; colour: the playfield's attributes are PF_AT (the stage's, with the
+; defenders' inks), on the screen but where an invader is: the cells it
+; covers take its ink each frame (at_rects), and get PF_AT back the next
+;------------------------------------------------------------------------------
+; defenders: an ink for the top of the cell, one for the bottom
+tower_inks:
+        db 0,0
+        db A_RED&7,A_BLU&7              ; cretan
+        db A_WHI&7,A_BLU&7              ; yiayia
+        db A_YEL&7,A_WHI&7              ; bride
+        db A_CYN&7,A_YEL&7              ; psssst
+        db A_GRN&7,A_RED&7              ; cauldron
+        db A_WHI&7,A_YEL&7              ; baker
+enemy_inks:
+        db A_MAG&7,A_BLU&7,A_RED&7      ; drone, guard, tank
+
+; A = defender type (0 none), D,E = col,row : the cell's inks, in PF_AT and
+; on the screen.  Preserves DE.
+cell_colour:
+        push de
+        add a,a
+        ld hl,tower_inks
+        add a,l
+        ld l,a
+        adc a,h
+        sub l
+        ld h,a
+        ld a,(hl)
+        ld (at_ink),a
+        inc hl
+        ld a,(hl)
+        push af
+        xor a
+        ld (at_skip),a
+        sla d
+        sla e
+        push de
+        ld bc,#0102
+        ld hl,at_set
+        call at_rect
+        pop de
+        inc e
+        pop af
+        ld (at_ink),a
+        ld bc,#0102
+        ld hl,at_set
+        call at_rect
+        pop de
+        ret
+
+; IX = an invader, just drawn: its cells take its ink, listed in at_rects
+en_tint:
+        ld a,(ix+E_X)           ; x, pixels: 2 attribute columns, 3 off the grid
+        add a,a
+        add a,a
+        ld d,a
+        ld c,2
+        and 7
+        jr z,.w
+        inc c
+.w:     ld a,d
+        rrca
+        rrca
+        rrca
+        and 31
+        ld d,a
+        ld a,PF_W
+        sub d
+        cp c
+        jr nc,.wc
+        ld c,a
+.wc:    ld a,(ix+E_Y)           ; 12 lines from y+2
+        add a,2
+        ld e,a
+        add a,11
+        rrca
+        rrca
+        rrca
+        and 31
+        cp PF_H/8
+        jr c,.hc
+        ld a,PF_H/8-1
+.hc:    ld b,a
+        ld a,e
+        rrca
+        rrca
+        rrca
+        and 31
+        ld e,a
+        ld a,b
+        sub e
+        inc a
+        ld b,a
+        ld a,(ix+E_TYPE)
+        ld hl,enemy_inks-1
+        add a,l
+        ld l,a
+        adc a,h
+        sub l
+        ld h,a
+        ld a,(hl)
+        ld (at_ink),a
+        ld hl,at_n
+        ld a,(hl)
+        cp MAX_EN
+        ret nc
+        inc (hl)
+        add a,a
+        add a,a
+        ld hl,at_rects
+        add a,l
+        ld l,a
+        adc a,h
+        sub l
+        ld h,a
+        ld (hl),d
+        inc hl
+        ld (hl),e
+        inc hl
+        ld (hl),c
+        inc hl
+        ld (hl),b
+        ld hl,at_tint
+        jp at_rect
+
+; with the sprites off: last frame's invaders' cells get PF_AT back
+at_restore:
+        ld a,(ban_shown)
+        ld (at_skip),a
+        ld a,(at_n)
+        or a
+        ret z
+        ld b,a
+        ld hl,at_rects
+.l:     push bc
+        ld d,(hl)
+        inc hl
+        ld e,(hl)
+        inc hl
+        ld c,(hl)
+        inc hl
+        ld b,(hl)
+        inc hl
+        push hl
+        ld hl,at_copy
+        call at_rect
+        pop hl
+        pop bc
+        djnz .l
+        xor a
+        ld (at_n),a
+        ret
+
+; D,E,C,B = col,row,w,h of the playfield's attribute cells, HL = what to do
+; on a row (HL = PF_AT, DE = the screen, B = bytes, C = at_ink); the
+; banner's rows are skipped while it is up and at_skip is set
+at_rect:
+        ld (.fn+1),hl
+        ld a,c
+        ld (at_w),a
+.r:     push bc
+        push de
+        ld a,(at_skip)
+        or a
+        jr z,.go
+        ld a,e
+        sub BAN_AROW-PF_Y/8
+        cp 4
+        jr c,.nx
+.go:    ld l,e
+        ld h,0
+        add hl,hl
+        ld b,h
+        ld c,l                  ; 2 row
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        add hl,hl               ; 32 row
+        push hl
+        or a
+        sbc hl,bc               ; 30 row
+        ld c,d
+        ld b,0
+        add hl,bc
+        ld de,PF_AT
+        add hl,de
+        ex (sp),hl
+        add hl,bc
+        ld de,ATTRS+32+PF_COL
+        add hl,de
+        ex de,hl
+        pop hl
+        ld a,(at_w)
+        ld b,a
+        ld a,(at_ink)
+        ld c,a
+.fn:    call 0
+.nx:    pop de
+        inc e
+        pop bc
+        djnz .r
+        ret
+
+at_copy:
+        ld a,(hl)
+        ld (de),a
+        inc hl
+        inc de
+        djnz at_copy
+        ret
+
+; ink C on the cell's paper; black where they are the same colour
+at_tint:
+        call at_ink_c
+        ld (de),a
+        inc hl
+        inc de
+        djnz at_tint
+        ret
+
+at_set:
+        call at_ink_c
+        ld (hl),a
+        ld (de),a
+        inc hl
+        inc de
+        djnz at_set
+        ret
+
+at_ink_c:
+        ld a,(hl)
+        rrca
+        rrca
+        rrca
+        and 7
+        xor c
+        ld a,(hl)
+        jr z,.k
+        and #f8
+        or c
+        ret
+.k:     and #f8
+        ret
 
 ;------------------------------------------------------------------------------
 ; waves
@@ -2026,6 +2285,8 @@ update_fx:
 ; drawing the sprites into the work buffer (render, gfx.asm, calls these)
 ;------------------------------------------------------------------------------
 draw_enemies:
+        ld a,(ban_shown)
+        ld (at_skip),a
         ld ix,enemies
         ld b,MAX_EN
 .l:     push bc
@@ -2050,6 +2311,7 @@ draw_enemies:
         add a,2
         ld e,a
         call draw_sprite
+        call en_tint
 .n:     ld de,EN_SZ
         add ix,de
         pop bc
@@ -2254,6 +2516,8 @@ ban_do_draw:
         ld bc,2*256+PF_W
         ld a,A_BAN2
         call attr_rect
+        ld a,1
+        ld (ban_shown),a
         ld de,BAN_Y
         ld bc,BAN_H*256+PF_W
         call dirty_add_both
@@ -2272,6 +2536,8 @@ banner_clear:
         ret
 
 ban_do_clear:
+        xor a
+        ld (ban_shown),a
         ld e,BAN_ROW
 .r:     ld d,0
 .c:     push de
@@ -2285,7 +2551,7 @@ ban_do_clear:
         ld a,e
         cp BAN_ROW+2
         jr nz,.r
-        ld hl,ban_attr          ; the stage's colours back
+        ld hl,PF_AT+(BAN_AROW-PF_Y/8)*PF_W  ; the playfield's colours back
         ld de,ATTRS+BAN_AROW*32+PF_COL
         ld b,4
 .a:     push bc

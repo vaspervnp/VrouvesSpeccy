@@ -12,6 +12,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 sys.path.insert(0, HERE)
 import art  # noqa: E402
+import zxcolour as zc  # noqa: E402
 import zxdata  # noqa: E402
 import zxrun  # noqa: E402
 
@@ -19,14 +20,17 @@ IMG = os.path.join(ROOT, "docs", "img")
 GREEN = (0, 215, 0)
 
 
-def icon(name, path, scale=6):
+def icon(name, path, inks, scale=6):
+    """the sprite as in the game, on grass: its inks for the top and the bottom
+    (black where green would be green on green)"""
     mask, ink = zxdata.sprite_mono(name, dict(art.SPRITES)[name])
     h, w = len(mask), len(mask[0])
     im = Image.new("RGB", (w + 4, h + 4), GREEN)
     for y in range(h):
         for x in range(w):
             if mask[y][x] and ink[y][x]:
-                im.putpixel((x + 2, y + 2), (0, 0, 0))
+                c = inks[0] if y + 2 < 8 else inks[1]
+                im.putpixel((x + 2, y + 2), (0, 0, 0) if c == 4 else zc.RGB[0][c])
     im.resize((im.width * scale, im.height * scale), Image.NEAREST).save(path)
 
 
@@ -76,10 +80,13 @@ def screens():
 
 def main():
     os.makedirs(IMG, exist_ok=True)
-    for name, spr in (("cretan", "spr_cretan"), ("psssst", "spr_psssst"), ("yiayia", "spr_yiayia"),
-                      ("bride", "spr_bride"), ("baker", "spr_baker"), ("cauldron", "spr_cauldron"),
-                      ("drone", "spr_drone_a"), ("guard", "spr_guard_a"), ("tank", "spr_tank_va")):
-        icon(spr, os.path.join(IMG, name + ".png"))
+    # the inks of game.asm's tower_inks and enemy_inks
+    for name, spr, inks in (("cretan", "spr_cretan", (2, 1)), ("psssst", "spr_psssst", (5, 6)),
+                            ("yiayia", "spr_yiayia", (7, 1)), ("bride", "spr_bride", (6, 7)),
+                            ("baker", "spr_baker", (7, 6)), ("cauldron", "spr_cauldron", (4, 2)),
+                            ("drone", "spr_drone_a", (3, 3)), ("guard", "spr_guard_a", (1, 1)),
+                            ("tank", "spr_tank_va", (2, 2))):
+        icon(spr, os.path.join(IMG, name + ".png"), inks)
     for k in range(1, 8):       # the playfield of the previews (3x)
         im = Image.open(os.path.join(ROOT, "build", "preview", "stage%d.png" % k))
         im.crop((24, 24, 24 + 720, 24 + 480)).save(os.path.join(IMG, "stage%d.png" % k))

@@ -29,7 +29,6 @@ LOAD_CLEAR  equ LOAD_BASE-1
 TAB_SCR     equ #5B00       ; screen line -> address: low bytes, high a page on
 TAB_BG      equ #5D00       ; playfield line -> background buffer
 SQUARES     equ #5F00       ; 64 x 16 bit
-ban_attr    equ #5F80       ; the banner rows' colours (120 bytes)
 IM2_TABLE   equ #FD00
 IM2_FILL    equ #FC
 IM2_JUMP    equ #FCFC
@@ -56,6 +55,7 @@ A_WHI       equ #47
 A_YEL       equ #46
 A_RED       equ #42
 A_GRN       equ #44
+A_BLU       equ #41
 A_CYN       equ #45
 A_GRY       equ #07
 A_MAG       equ #43
@@ -188,7 +188,7 @@ stage_entry:
         ret
 
 ; the stage's colours onto the playfield (unpacked into the work buffer),
-; the banner rows' kept in ban_attr
+; and kept in PF_AT
 stage_attrs:
         call stage_entry
         inc hl
@@ -211,10 +211,13 @@ stage_attrs:
         ex de,hl
         pop bc
         djnz .r
-        ld hl,WORKBUF+(BAN_AROW-1)*PF_W
-        ld de,ban_attr
-        ld bc,4*PF_W
+        ld hl,WORKBUF
+        ld de,PF_AT
+        ld bc,PF_W*PF_H/8
         ldir
+        xor a
+        ld (at_n),a
+        ld (ban_shown),a
         ret
 
 ;------------------------------------------------------------------------------
@@ -443,6 +446,13 @@ tr_budget:  defs 1
 ticks_due:  defs 1
 frame_acc:  defs 1
 dbg_el:     defs 1
+ban_shown:  defs 1          ; the banner is on the screen (its colours too)
+at_n:       defs 1          ; invaders coloured last frame
+at_rects:   defs 4*16       ; their attribute rectangles: col, row, w, h
+at_ink:     defs 1
+at_w:       defs 1
+at_skip:    defs 1
+PF_AT:      defs PF_W*PF_H/8 ; the playfield's colours, the defenders' inks in
 game_vars_end:
 STAGE_AREA: defs STAGE_SIZE
 bss_end:
@@ -456,7 +466,7 @@ work_end:
         assert lo(enemies) == 0 && EN_SZ*MAX_EN == 256 && lo(projs) == 0
         assert lo(CLIST) == 0
         assert work_end <= STACK_TOP-STACK_SIZE
-        assert (SQUARES+128) <= ban_attr && ban_attr+4*PF_W <= LOAD_BASE
+        assert SQUARES+128 <= LOAD_BASE
 
         print "code+data: ",{hex}bin_start,"-",{hex}code_end," (",code_end-bin_start," bytes)"
         print "variables to ",{hex}bss_end,", buffers to ",{hex}work_end,", free ",STACK_TOP-STACK_SIZE-work_end

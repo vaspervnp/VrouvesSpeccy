@@ -499,6 +499,7 @@ render:
         djnz .ur
         jr .u
 .ud:    ld (save_ptr),hl
+        call at_restore         ; the invaders' colours off
         call bg_pending         ; the background's changes
         call draw_enemies
         call draw_projs

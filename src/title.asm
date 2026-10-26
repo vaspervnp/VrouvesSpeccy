@@ -177,8 +177,13 @@ title_page:
         ld a,(hl)
         inc hl
         ld (tmp_y),a
+        ld c,(hl)               ; the inks, top and bottom (as in the game)
+        inc hl
+        ld b,(hl)
+        inc hl
         push hl
         push de
+        push bc
         ld a,(tmp_y)            ; a patch of grass behind the sprite
         rrca
         rrca
@@ -186,8 +191,17 @@ title_page:
         and 31
         ld e,a
         ld d,2
-        ld bc,2*256+2
         ld a,A_GRASS
+        or c
+        ld bc,1*256+2
+        push de
+        call attr_rect
+        pop de
+        inc e
+        pop bc
+        ld a,A_GRASS
+        or b
+        ld bc,1*256+2
         call attr_rect
         pop hl
         ld a,(tmp_y)
@@ -356,28 +370,29 @@ tscene_cast:
 
 A_GRASS equ #20                 ; black on green
 
+; sprite, text, y, inks (game.asm's, black for green on the grass)
 def_list:
         dw spr_cretan
-        db T_CAST1,48
+        db T_CAST1,48,A_RED&7,A_BLU&7
         dw spr_yiayia
-        db T_CAST2,64
+        db T_CAST2,64,A_WHI&7,A_BLU&7
         dw spr_bride
-        db T_CAST3,80
+        db T_CAST3,80,A_YEL&7,A_WHI&7
         dw spr_psssst
-        db T_CAST4,96
+        db T_CAST4,96,A_CYN&7,A_YEL&7
         dw spr_cauldron
-        db T_CAST5,112
+        db T_CAST5,112,0,A_RED&7
         dw spr_baker
-        db T_CAST6,128
+        db T_CAST6,128,A_WHI&7,A_YEL&7
         dw 0
 
 inv_list:
         dw spr_drone_a
-        db T_ENE1,56
+        db T_ENE1,56,A_MAG&7,A_MAG&7
         dw spr_guard_a
-        db T_ENE2,88
+        db T_ENE2,88,A_BLU&7,A_BLU&7
         dw spr_tank_va
-        db T_ENE3,120
+        db T_ENE3,120,A_RED&7,A_RED&7
         dw 0
 
 ;------------------------------------------------------------------------------
