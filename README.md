@@ -10,7 +10,8 @@ squads and weed-destroying tanks to wipe out the wild, "copyrighted" *vrouves* o
 In Zoniana, the villagers have to protect the Kafenio and its sacks of bitter greens.
 The rebel corporate drone **Psssst** has defected to their side.
 
-**Player's manual:** [English](docs/MANUAL.md) · [Ελληνικά](docs/MANUAL_GR.md) ·
+**Player's manual:** [English](docs/MANUAL.md) ([PDF](docs/MANUAL.pdf)) ·
+[Ελληνικά](docs/MANUAL_GR.md) ([PDF](docs/MANUAL_GR.pdf)) ·
 how the port works: [planzx.md](planzx.md) (in Greek)
 
 | | |
@@ -112,6 +113,7 @@ make test       # the scripts of tests/ and a whole game played through, 48K and
 make check      # the tape through the real 48K and 128K ROMs
 make debug      # build/debug.bin: rich, at wave 9, every defender
 make pictures   # the loading screen and the ending again
+make manuals    # docs/MANUAL.pdf, docs/MANUAL_GR.pdf (markdown + weasyprint)
 ```
 
 `tools/zxrun.py` is a headless Spectrum (the `z80` module, the interrupt, keyboard, Kempston,

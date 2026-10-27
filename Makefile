@@ -10,6 +10,8 @@
 #   make check        the tape loaded through the real 48K and 128K ROMs
 #   make debug        build/debug.bin: rich, at wave 9, every defender
 #   make pictures     the loading screen and the ending again (slow)
+#   make manuals      docs/MANUAL.pdf and docs/MANUAL_GR.pdf (markdown, weasyprint:
+#                     MANUAL_PYTHON=a python that has them)
 #   make release      the tape, the snapshots and the manuals in release/
 #   make clean
 
@@ -17,9 +19,10 @@ SHELL  := /bin/bash
 RASM   ?= rasm
 PYTHON ?= python3
 FBZX   ?= fbzx
+MANUAL_PYTHON ?= $(PYTHON)
 B      := build
 
-.PHONY: all run test check debug pictures release clean
+.PHONY: all run test check debug pictures manuals release clean
 
 all: $(B)/vrouves.tap $(B)/vrouves48.z80 $(B)/vrouves128.z80
 
@@ -95,11 +98,14 @@ check: $(B)/vrouves.tap
 
 RELEASE := $(B)/vrouves.tap $(B)/vrouves.tzx $(B)/vrouves48.z80 $(B)/vrouves128.z80
 
+manuals:
+	$(MANUAL_PYTHON) tools/make_manual.py
+
 release: all
 	rm -rf release
 	mkdir -p release
 	cp $(RELEASE) release/
-	cp -r docs/MANUAL.md docs/MANUAL_GR.md docs/img release/
+	cp -r docs/MANUAL.md docs/MANUAL_GR.md docs/MANUAL.pdf docs/MANUAL_GR.pdf docs/img release/
 	cd release && sha256sum *.* > SHA256SUMS
 	ls -l release
 
