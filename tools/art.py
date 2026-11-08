@@ -152,6 +152,23 @@ BAKER = [
     ".kk.kk..",
 ]
 
+# the lyra player: black sariki and vest, white shirt, red sash, the lyra
+# upright on his knee and the bow across it
+LYRA = [
+    "..kkkk..",
+    ".kkkkkk.",
+    "..ssss.r",
+    "..sksk.o",
+    "..kkkk.o",
+    ".WkkkWoo",
+    "sWkkkWro",
+    "yyyyyyys",
+    ".RRRRroo",
+    ".kkkk.o.",
+    ".kk.kk..",
+    ".kk.kk..",
+]
+
 # ---------------------------------------------------------------- enemies
 DRONE_A = [
     "cc....cc",
@@ -415,6 +432,28 @@ ZAP_A = [
     "........",
 ]
 
+# the lyra's tune: notes over the invaders it reaches
+NOTE_A = [
+    "....yy..",
+    "....yWy.",
+    "....y.y.",
+    "....y...",
+    "..yyy...",
+    ".yWWy...",
+    ".yyy....",
+    "........",
+]
+NOTE_B = [
+    "..yyyyy.",
+    "..y...y.",
+    "..y...y.",
+    "yyy.yyy.",
+    "yWy.yWy.",
+    "yy..yy..",
+    "........",
+    "........",
+]
+
 CURSOR_OK = [
     "WWW..WWW",
     "W......W",
@@ -517,6 +556,13 @@ SPRITES = [
     ("spr_cursor_bad", CURSOR_BAD),
     ("spr_flag_a", FLAG_A),
     ("spr_flag_b", FLAG_B),
+]
+
+# only in the stages with the Lyra player (main.asm, the Lyra area)
+EXTRA_SPRITES = [
+    ("spr_lyra", LYRA),
+    ("spr_note_a", NOTE_A),
+    ("spr_note_b", NOTE_B),
 ]
 
 

@@ -18,6 +18,7 @@ STRINGS = [
     ("S_NAME4", "PSSSST", "ΨΣΣΣΤ"),
     ("S_NAME5", "CAULDRON", "ΚΑΖΑΝΙ"),
     ("S_NAME6", "BAKER", "ΦΟΥΡΝΑΡΗΣ"),
+    ("S_NAME7", "LYRA PLAYER", "ΛΥΡΑΡΗΣ"),
     ("S_INFO1", "[1] CRETAN 35: HUNTING RIFLE, AIR+GND",
                 "[1] ΚΡΗΤΙΚΟΣ 35: ΤΟΥΦΕΚΙ, ΑΕΡΑΣ+ΓΗ"),
     ("S_INFO2", "[2] YIAYIA 50: STAFF+POT, SLOWS",
@@ -30,6 +31,8 @@ STRINGS = [
                 "[5] ΚΑΖΑΝΙ 110: ΤΟΞΙΚΟ ΣΥΝΝΕΦΟ, ΠΕΡΙΟΧΗ"),
     ("S_INFO6", "[6] BAKER 60: HURLS DAKOS, SPLASH",
                 "[6] ΦΟΥΡΝΑΡΗΣ 60: ΠΕΤΑΕΙ ΝΤΑΚΟΥΣ!"),
+    ("S_INFO7", "[7] LYRA 90: ALL IN REACH, AIR+GND",
+                "[7] ΛΥΡΑΡΗΣ 90: ΣΕ ΟΛΟΥΣ, ΑΕΡΑΣ+ΓΗ"),
     ("B_CALL", "BUILD, THEN PRESS N FOR THE WAVE",
                "ΧΤΙΣΕ ΚΑΙ ΠΑΤΑ N ΓΙΑ ΤΟ ΚΥΜΑ"),
     ("B_CLEAR", "WAVE CLEARED!  BONUS VROUVES!",
@@ -38,6 +41,9 @@ STRINGS = [
     ("B_FINAL", "FINAL WAVE! HERE COME THE TANKS!",
                 "ΤΕΛΙΚΟ ΚΥΜΑ! ΕΡΧΟΝΤΑΙ ΤΑ ΤΑΝΚΣ!"),
     ("B_NEWDEF", "A NEW DEFENDER JOINS THE VILLAGE!", "ΝΕΟΣ ΑΜΥΝΤΙΚΟΣ ΣΤΟ ΧΩΡΙΟ!"),
+    ("B_BRIDE", "THE BRIDE IS AT THE ALTAR!", "Η ΝΥΦΗ ΣΤΕΦΑΝΩΝΕΤΑΙ!"),
+    ("B_BRIDE2", "HOLD THEM OFF WITHOUT HER!", "ΚΡΑΤΗΣΤΕ ΤΟΥΣ ΜΑΚΡΙΑ ΧΩΡΙΣ ΑΥΤΗ!"),
+    ("B_QUIT", "QUIT THIS GAME?", "ΕΞΟΔΟΣ ΑΠΟ ΤΟ ΠΑΙΧΝΙΔΙ;"),
     ("B_SPACE", "PRESS SPACE / FIRE", "ΠΑΤΗΣΤΕ SPACE / FIRE"),
     ("B_PAUSE", "PAUSED", "ΠΑΥΣΗ"),
     ("B_PAUSE2", "H: CONTINUE    ESC: QUIT", "H: ΣΥΝΕΧΕΙΑ    ESC: ΕΞΟΔΟΣ"),
@@ -58,6 +64,8 @@ STRINGS = [
                 "ΚΑΖΑΝΙ - 110\nΑΔΕΙΟΔΟΤΗΤΑ ΛΙΠΙΔΙΑ & ΑΣΚΟΡΒΙΚΑ."),
     ("T_CAST6", "BAKER - 60\nHURLS DAKOS (BARLEY RUSKS). SPLASH.",
                 "ΦΟΥΡΝΑΡΗΣ - 60\nΠΕΤΑΕΙ ΚΡΙΘΑΡΟΚΟΥΛΟΥΡΑ. ΠΙΤΣΙΛΙΑ."),
+    ("T_CAST7", "LYRA PLAYER - 90\nHIS TUNE HITS ALL, CHARMS DRONES.",
+                "ΛΥΡΑΡΗΣ - 90\nΜΑΝΤΙΝΑΔΑ ΣΕ ΟΛΟΥΣ, ΜΑΓΕΥΕΙ ΝΤΡΟΝ."),
     ("T_ENE1", "BIO-DRONE\nFAST, FRAGILE. FLIES OVER WALLS.",
                "ΒΙΟ-ΝΤΡΟΝ\nΓΡΗΓΟΡΟ, ΕΥΘΡΑΥΣΤΟ. ΠΕΤΑΕΙ ΠΑΝΩ."),
     ("T_ENE2", "COMPLIANCE GUARD\nARMOURED. WEED-WHACKER, HERBICIDE.",
@@ -70,6 +78,10 @@ STRINGS = [
     ("T_CTRL2", "CHOOSE\n\nSELL\n\nPAUSE\n\nGREEK",
                 "ΕΠΙΛΟΓΗ\n\nΠΟΥΛΗΜΑ\n\nΠΑΥΣΗ\n\nΑΓΓΛΙΚΑ"),
 ]
+
+# strings that only the stages with the Lyra player use: they travel in
+# those stage files (main.asm, the Lyra area), not in the resident code
+EXTRA_STRINGS = {"S_NAME7", "S_INFO7", "B_BRIDE", "B_BRIDE2"}
 
 # texts printed straight from glyph codes, with no entry in the string
 # tables (which take room in the resident code): label -> (english, greek)

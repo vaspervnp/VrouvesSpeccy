@@ -8,7 +8,7 @@
                        waves, texts) and attributes, the title page's scene,
                        the music and the sound effects
   build/loading.scr    the loading picture (assets/vrouves.jpeg + the title)
-  build/ending.scr     the ending (assets/ending_sceneFinal.png)
+  build/ending.scr     the ending (assets/wedding_sceneFinal.png)
   build/preview/*.png  how it all looks on the Spectrum
 
 A map cell is 16 x 16 pixels, 2 x 2 attribute cells: the playfield, 15 x 10
@@ -74,7 +74,7 @@ ZX_TEXT = {
 }
 EXTRA_STRINGS = [
     ("T_KEYS", "←↑↓→ QAOP\n\nSPACE\n\nN\n\nM", None),
-    ("T_KEYS2", "1-6\n\nS\n\nH\n\nL", None),
+    ("T_KEYS2", "1-7\n\nS\n\nH\n\nL", None),
     ("T_HSHDR", "HIGH SCORES", "ΚΑΛΥΤΕΡΑ ΣΚΟΡ"),
     ("T_NEWHS", "NEW HIGH SCORE!", "ΝΕΟ ΡΕΚΟΡ!"),
     ("T_NAME", "ENTER YOUR NAME", "ΓΡΑΨΕ ΤΟ ΟΝΟΜΑ ΣΟΥ"),
@@ -233,7 +233,7 @@ CURSOR_BAD = [          # where nothing can be built
 ]
 CURSOR_X, CURSOR_Y = 1, 1       # its place in the cell
 SMALL = {"spr_bullet", "spr_pistol", "spr_pistol_crit", "spr_laser", "spr_dakos",
-         "spr_spark_a", "spr_spark_b"}
+         "spr_spark_a", "spr_spark_b", "spr_note_a", "spr_note_b"}
 NO_HALO = {"spr_flag_a", "spr_flag_b", "spr_puff_a", "spr_puff_b", "spr_poof_b", "spr_boom_b"}
 
 
@@ -289,9 +289,9 @@ def sprite_bytes(mask, ink):
 def sprite_data():
     A = ["; sprites: w, h, rows of (shape bytes, ink bytes); drawn at any pixel"]
     mono = {}
-    for name, rows in art.SPRITES:
+    for name, rows in art.SPRITES + art.EXTRA_SPRITES:
         mono[name] = sprite_mono(name, rows)
-    for name, rows in art.SPRITES:
+    for name, rows in art.SPRITES + art.EXTRA_SPRITES:
         A.append(name + ":")
         A += db(sprite_bytes(*mono[name]))
     # the mirrored enemy frames (walking left)
@@ -306,25 +306,28 @@ def sprite_data():
 
 
 # ------------------------------------------------------------------ stages
+def tile_key(bits, c, r):
+    return tuple(tuple(bits[r * CW + y][c * CW:c * CW + CW]) for y in range(CW))
+
+
+def tile_bytes(tiles):
+    return [v for t in tiles for row in t for v in bits_to_bytes(row, 2)]
+
+
 class TileSet:
-    """Spectrum tiles (16 x 16 bits, 32 bytes) shared by every stage"""
+    """Spectrum tiles (16 x 16 bits, 32 bytes) shared by several stages"""
 
     def __init__(self):
         self.index, self.tiles = {}, []
 
-    def add(self, bits, c, r):
-        t = tuple(tuple(bits[r * CW + y][c * CW:c * CW + CW]) for y in range(CW))
+    def add(self, t):
         if t not in self.index:
             self.index[t] = len(self.tiles)
             self.tiles.append(t)
         return self.index[t]
 
     def bytes(self):
-        out = []
-        for t in self.tiles:
-            for row in t:
-                out += bits_to_bytes(row, 2)
-        return out
+        return tile_bytes(self.tiles)
 
 
 def path_data(wps):
@@ -357,54 +360,73 @@ def path_steps(wps):
 
 
 def unlock_data(k, ids):
-    if k < len(world.UNLOCKS):
-        types, l1, l2 = world.UNLOCKS[k]
-        ann = [ids.index(l1), ids.index(l2)]
-    else:
-        types, ann = {1, 2, 3, 4, 5, 6}, [0xFF, 0xFF]
+    types, ann = world.UNLOCKS[k]
+    ann = [ids.index(a) for a in ann] if ann else [0xFF, 0xFF]
     return [sum(1 << (t - 1) for t in types)] + ann + [zw.STAGES[k].toughness]
 
 
 def stage_data(ids, stage_enc, ts):
     built = []
+    # a tile that more than one stage has is kept in memory (tile_at, below
+    # #80), the others packed in their stage's record (at stage_tiles, from #80)
+    pics, owners = [], {}
     for k, st in enumerate(zw.STAGES):
         full, grid = zw.render(k, True)
         empty, _ = zw.render(k, False)
         bits, attrs = zc.playfield(full, ACOLS, AROWS, PF_X, PF_Y, zw.free_cells(k))
         ebits, _ = zc.playfield(empty, ACOLS, AROWS, PF_X, PF_Y, zw.free_cells(k))
+        pics.append((grid, bits, attrs, ebits))
+        for b_ in (bits, ebits):
+            for r in range(MH):
+                for c in range(MW):
+                    owners.setdefault(tile_key(b_, c, r), set()).add(k)
+    for k, st in enumerate(zw.STAGES):
+        grid, bits, attrs, ebits = pics[k]
         local, tlist, tmap, cmap = {}, [], [], []
 
-        def lid(g):
-            if g not in local:
-                local[g] = len(tlist)
-                tlist.append(g)
-            return local[g]
+        def lid(b_, c, r):
+            key = tile_key(b_, c, r)
+            if len(owners[key]) > 1:
+                g = ts.add(key)
+                assert g < 0x80
+                return g
+            if key not in local:
+                local[key] = 0x80 + len(tlist)
+                tlist.append(key)
+                assert len(tlist) <= 0x80
+            return local[key]
         for r in range(MH):
             for c in range(MW):
-                tmap.append(lid(ts.add(bits, c, r)))
+                tmap.append(lid(bits, c, r))
                 t = grid[r][c]
                 cmap.append(0 if t in '.F' else 1 if t == '#' else 3 if t == 'K' else 2)
         sacks = []
         for (c, r) in st.sacks:
             f = tmap[r * MW + c]
-            e = lid(ts.add(ebits, c, r))
+            e = lid(ebits, c, r)
             assert f != e, (k, c, r)
             sacks += [c, r, f, e]
-        assert len(tlist) < 256
         waves = getattr(world, st.waves)
         assert len(waves) == len(world.WAVES1)
+        pg, road2 = path_data(st.ground), 0
+        if st.ground2:      # after the first road, at a whole segment: enemy_seg finds it
+            pg += [0] * (-len(pg) % 3)      # with E_SEG past that one's end
+            road2 = len(pg) // 3
+            pg += path_data(st.ground2)
+            assert 4 + 3 * (len(pg) // 3) < 256
         built.append(dict(tmap=tmap, cmap=cmap, sacks=sacks, flag=zw.flag_xy(k), tlist=tlist,
-                          pg=path_data(st.ground), pa=path_data(st.air), attrs=attrs,
+                          pg=pg, pa=path_data(st.air), attrs=attrs,
                           waves=[[v for (t, n, iv) in w for v in (t, n, iv)] + [0] for w in waves],
-                          unlock=unlock_data(k, ids), grid=grid, bits=bits))
+                          unlock=unlock_data(k, ids) + [road2], grid=grid, bits=bits))
     # the record of a stage, unpacked to STAGE_AREA: every section as big as
     # the biggest stage's
     sections = [("tilemap", MW * MH), ("cellmap", MW * MH), ("sack_cells", 20), ("stage_flag", 2),
-                ("stage_unlock", 4),
+                ("stage_unlock", 5),
                 ("path_ground", max(len(b["pg"]) for b in built)),
                 ("path_air", max(len(b["pa"]) for b in built)),
                 ("wave_table", len(world.WAVES1)),
                 ("wave_data", max(sum(len(w) for w in b["waves"]) for b in built))]
+    sections.append(("stage_tiles", 32 * max(len(b["tlist"]) for b in built)))
     for sid in world.STAGE_STRINGS:
         for lang in (0, 1):
             sections.append(("s%s_%s" % ("eg"[lang], sid),
@@ -417,9 +439,9 @@ def stage_data(ids, stage_enc, ts):
          "NUM_WAVES equ %d" % len(world.WAVES1), "STAGE_SIZE equ %d" % o]
     for name, n in sections:
         S.append("%s equ STAGE_AREA+%d" % (name, off[name]))
-    S.append("stage_tab:          ; per stage: record, attributes, tile list")
+    S.append("stage_tab:          ; per stage: record, attributes")
     for k in range(len(built)):
-        S.append("        dw st%d_rec,st%d_attr,st%d_tiles" % (k, k, k))
+        S.append("        dw st%d_rec,st%d_attr" % (k, k))
     total = 0
     for k, b in enumerate(built):
         img = bytearray(o)
@@ -440,6 +462,7 @@ def stage_data(ids, stage_enc, ts):
             wd += w
         put("wave_table", ptrs)
         put("wave_data", wd)
+        put("stage_tiles", tile_bytes(b["tlist"]))
         for sid in world.STAGE_STRINGS:
             for lang in (0, 1):
                 put("s%s_%s" % ("eg"[lang], sid), stage_enc[(k, sid, lang)])
@@ -449,36 +472,10 @@ def stage_data(ids, stage_enc, ts):
         S += db(rec)
         S.append("st%d_attr:" % k)
         S += db(att)
-        S.append("st%d_tiles:          ; %d tiles" % (k, len(b["tlist"])))
-        S += ["        dw " + ",".join("tiles+%d" % (32 * g) for g in b["tlist"][i:i + 8])
-              for i in range(0, len(b["tlist"]), 8)]
-        total += len(rec) + len(att) + 2 * len(b["tlist"])
-    print("stages: %d bytes of records, attributes and tile lists" % total)
+        total += len(rec) + len(att)
+    print("stages: %d bytes of records and attributes; own tiles %s" %
+          (total, [len(b["tlist"]) for b in built]))
     return S, built
-
-
-# the first title page's scene: the bottom half of the first stage
-TSCENE_R0 = 5
-
-
-def title_scene(ts, built):
-    bits, attrs = built[0]["bits"], built[0]["attrs"]
-    rows = MH - TSCENE_R0
-    local, tlist, tmap = {}, [], []
-    for r in range(TSCENE_R0, MH):
-        for c in range(MW):
-            g = ts.add(bits, c, r)
-            if g not in local:
-                local[g] = len(tlist)
-                tlist.append(g)
-            tmap.append(local[g])
-    att = attrs[TSCENE_R0 * 2 * ACOLS:]
-    A = ["TSCENE_ROWS equ %d" % rows, "tscene:             ; tile map, then attributes (packed)"]
-    A += db(lz.pack(bytes(tmap + att)))
-    A.append("tscene_tiles:")
-    A += ["        dw " + ",".join("tiles+%d" % (32 * g) for g in tlist[i:i + 8])
-          for i in range(0, len(tlist), 8)]
-    return A
 
 
 # ------------------------------------------------------------------ sound
@@ -576,7 +573,7 @@ def loading_screen():
 
 
 def ending_screen():
-    im = load_fit(os.path.join(ROOT, "assets", "ending_scene.png"), 256, 192)
+    im = load_fit(os.path.join(ROOT, "assets", "wedding_scene.png"), 256, 192)
     im = ImageEnhance.Color(im).enhance(1.4)
     bmp, attrs = zc.picture(im)
     return bytes(bmp) + bytes(attrs)
@@ -628,7 +625,6 @@ def main():
     T, ids, stage_enc = text_data()
     ts = TileSet()
     S, built = stage_data(ids, stage_enc, ts)
-    TS = title_scene(ts, built)
     SP, mono = sprite_data()
     tb = ts.bytes()
     print("tiles: %d, %d bytes" % (len(ts.tiles), len(tb)))
@@ -637,7 +633,7 @@ def main():
     # memory the ULA slows down
     A += font_data() + [""] + T + [""]
     A += ["NUM_TILES equ %d" % len(ts.tiles), "tiles:"] + db(tb, 16) + [""]
-    A += S + [""] + TS + [""] + sound_data() + [""] + SP
+    A += S + [""] + sound_data() + [""] + SP
     with open(os.path.join(GEN, "data.asm"), "w") as f:
         f.write("\n".join(A) + "\n")
     for k, b in enumerate(built):

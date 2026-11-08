@@ -83,6 +83,7 @@ test: $(B)/vrouves.bin $(B)/vrouves.sym $(B)/ending.scr
 	    --kempston --script $$t --out $(B)/shots/$$m); \
 	  printf '%s\n' "$$out" | grep -v '^shot' || true; \
 	done; done
+	$(PYTHON) tests/lyra.py
 	@for m in 48 128; do echo "== a whole game ($$m K)"; \
 	  $(PYTHON) tests/full.py --model $$m || exit 1; done
 

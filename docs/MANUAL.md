@@ -81,11 +81,12 @@ The difficulty, shown under the title, sets how many lives you get for the whole
 | Key | Action |
 | --- | --- |
 | Cursor keys (CAPS SHIFT + 5 6 7 8) / Q A O P / Kempston joystick | Move the build cursor |
-| 1 – 6 | Choose a defender (only those you have in this stage) |
+| 1 – 7 | Choose a defender (only those you have in this stage) |
 | SPACE / ENTER / FIRE | Build the chosen defender on the cursor |
 | S / DELETE (CAPS SHIFT + 0) | Sell the defender under the cursor |
 | N | Call the next wave now |
-| H | Pause / continue; BREAK (CAPS SHIFT + SPACE) while paused quits to the title screen |
+| H | Pause / continue |
+| BREAK (CAPS SHIFT + SPACE) | Quit to the title screen: the game pauses and asks, a second BREAK quits, H plays on |
 | L | Switch between English and Greek, at any time |
 | M | Music on / off |
 
@@ -110,8 +111,8 @@ cannot: the cell is taken, it is not grass, or you cannot afford the defender.
   with your score as it was when the stage began. With none left, the game is over and you go
   back to the title screen.
 * Survive all ten waves and you move on to the next stage. Win the last one, and the vrouves
-  are safe: the whole village celebrates at a feast in front of the school. Press SPACE /
-  FIRE to go back to the title screen.
+  are safe: the whole village celebrates at the Bride's wedding, in front of the church. Press
+  SPACE / FIRE to go back to the title screen.
 
 ## The score
 
@@ -121,13 +122,13 @@ to the lives you have left (`SCORE 01903 LIVES 3`) whenever the bar has no messa
 | | Points |
 | --- | --- |
 | Every invader you stop | the damage it would have done: 4 for a drone, 8 for a guard, 20 for a tank |
-| Every defender you build | its damage: Cretan 6, Yiayia 14, Bride 4, Psssst 5, Cauldron 8, Baker 16 (taken away again if you sell it) |
+| Every defender you build | its damage: Cretan 6, Yiayia 14, Bride 4, Psssst 5, Cauldron 8, Baker 16, Lyra player 4 (taken away again if you sell it) |
 | Calling a wave early with N | every second still left on the countdown |
 | A stage won | every vrouve left in your funds |
 
 A lost stage gives no points: when you play it again with one of your lives, the score goes
 back to what it was when the stage began. The game ends when you win the last stage, when you
-lose a stage with no lives left, or when you quit with BREAK while paused. There is one table
+lose a stage with no lives left, or when you quit with BREAK. There is one table
 for all four difficulties, so the easier levels, with more lives, make a high score easier.
 
 When the game ends with one of the eight best scores, enter your name: three letters, UP and
@@ -136,9 +137,11 @@ long as the Spectrum is on.
 
 ## The defenders
 
-Not everyone is ready from the start: the Kafenio is held by the Cretan and Psssst, and every
-following stage brings one more defender to the village. A new defender is announced at the
-start of its stage.
+Not everyone is ready from the start: the Kafenio is held by the Cretan and Psssst, every
+following stage up to the school brings one more defender to the village, and at the
+sheepfold, stage 8, the Lyra player joins in. A new defender is announced at the start of its
+stage. At the wedding, stage 10, the Bride is missing: she is at the altar, and 3 does not
+choose her.
 
 | | Key | Defender | Price | From stage | What it does |
 | --- | --- | --- | --- | --- | --- |
@@ -148,6 +151,7 @@ start of its stage.
 | ![](img/bride.png) | 3 | **Bride** | 70 | 3 | Wedding white and a rapid pistol. One shot in four is a critical hit for triple damage. |
 | ![](img/baker.png) | 6 | **Baker** | 60 | 4 | Hurls dakos (barley rusks) that splash onto everything around the target. |
 | ![](img/cauldron.png) | 5 | **Cauldron** | 110 | 5 | A toxic cloud of "unlicensed lipids and ascorbic acids": hurts every walker around it, ignoring armour, and slows them. It cannot reach drones, and tanks dent it as they pass. |
+| ![](img/lyra.png) | 7 | **Lyra player** | 90 | 8 | Plays the Cretan lyra, and his tune hits **every** invader around him, walkers and drones alike. The drones, charmed, slow down. The damage is small and armour takes its share: he is for swarms of drones, not for tanks. |
 
 ### Neighbours
 
@@ -160,11 +164,16 @@ next to its partner – left, right, above or below, not diagonally – hits har
 | Yiayia | a Baker | **+20%** |
 | Baker | a Cretan | **–50%** |
 | Psssst | a Cretan | **–20%** |
+| Lyra player | another Lyra player | **–50%** |
+| Lyra player | a Yiayia | **+50%** |
 
 Only three defenders at a time can have a bonus. They keep it for as long as they stay next
 to their partner; a fourth one gets nothing, until one of the three is sold or loses its
 partner, and then the bonus passes on to the next defender waiting for one. The penalties
 always count.
+
+A Lyra player next to both a Yiayia and another Lyra player gets the –50%: two lyres playing
+different tunes spoil everything.
 
 Before you build, the info line shows the bonus the defender would get on the cursor cell:
 green for a bonus, red for a penalty. When three defenders already have a bonus, no bonus is
@@ -174,7 +183,7 @@ shown.
 
 | | Invader | What it does |
 | --- | --- | --- |
-| ![](img/drone.png) | **Bio-drone** | Fast and fragile. Flies its own shortcut over walls and trees, so only the Cretan, Psssst, the Bride and the Baker can reach it. |
+| ![](img/drone.png) | **Bio-drone** | Fast and fragile. Flies its own shortcut over walls and trees, so only the Cretan, Psssst, the Bride, the Baker and the Lyra player can reach it. |
 | ![](img/guard.png) | **F&M compliance guard** | Armoured, with a weed-whacker and herbicide. Armour takes some of every hit, except the Cauldron's cloud; Psssst's laser melts it away. |
 | ![](img/tank.png) | **Weed destroyer** | A treaded tank with lots of armour and health. It dents Cauldrons beside the road, putting them out of action for a few seconds, and costs 20 HP if it gets through. |
 
@@ -238,11 +247,42 @@ grass of the pitch itself; the drones fly straight across it.
 
 <div class="stage" markdown="1">
 
-**7. The cemetery church.** The last stand, at the little stone chapel among the graves and
-the cypresses. The road winds between the graves, where nothing can be built – except
+**7. The cemetery church.** At the little stone chapel among the graves and the cypresses. The road winds between the graves, where nothing can be built – except
 Psssst, who hovers.
 
 ![Stage 7](img/stage7.png)
+
+</div>
+
+<div class="stage" markdown="1">
+
+**8. The sheepfold on the mountain.** High in the mountains, at the shepherd's fold where the
+vrouves grow. The sacks are in the yard of the mitato, the stone hut where the cheese is made.
+The road winds down in hairpins between rocks, dry-stone walls and sheep, where only Psssst
+can sit, and the waves bring many drones. The Lyra player joins in here.
+
+![Stage 8](img/stage8.png)
+
+</div>
+
+<div class="stage" markdown="1">
+
+**9. The olive press.** The old olive press, with its millstone in the yard and storage jars
+among the olive trees. The invaders come along **two roads**, one from each side, each taking
+half of them; the roads meet just below the yard.
+
+![Stage 9](img/stage9.png)
+
+</div>
+
+<div class="stage" markdown="1">
+
+**10. The Bride's wedding.** The last stand, in the courtyard of the village church, decked
+out for the wedding: the groom waits at the door and the guests sit at the long tables. The
+road runs between the tables, where only Psssst can sit. The Bride is at the altar, so here
+she does not fight. The last wave brings a column of tanks.
+
+![Stage 10](img/stage10.png)
 
 </div>
 
@@ -256,6 +296,9 @@ Psssst, who hovers.
 * Against armoured guards and tanks, Psssst's laser and the Cauldron's cloud are worth their
   price. Keep Cauldrons a step away from the road, out of the tanks' way.
 * Psssst can sit on walls, trees and graves: use the cells no one else can.
+* Against swarms of drones, put the Lyra player where they fly past, with a Yiayia next to him,
+  and keep Lyra players apart.
+* At the olive press, a defence near the point where the roads meet hits both.
 * Call waves early when your defence is comfortable: the bonus adds up.
 
 ---

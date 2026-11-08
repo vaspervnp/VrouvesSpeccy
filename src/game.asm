@@ -48,6 +48,9 @@ TT_BRIDE  equ 3
 TT_PSSSST equ 4
 TT_CAULDRON equ 5
 TT_BAKER  equ 6
+TT_LYRA   equ 7
+
+stage_road2 equ stage_unlock+4  ; first segment of the second road, 0 for none
 
 ; projectile record (10 bytes)
 P_TYPE  equ 0
@@ -89,6 +92,7 @@ FX_BASH  equ 3
 FX_POOF  equ 4
 FX_BOOM  equ 5
 FX_ZAP   equ 6
+FX_NOTE  equ 7
 
 HUDF_WAVE   equ 1
 HUDF_INFO   equ 2
@@ -123,9 +127,10 @@ ttype_tab:
         db 80,48,10,5,1,PT_LASER,SFX_LASER,40           ; psssst
         db 110,29,32,8,0,0,SFX_PUFF,55                  ; cauldron
         db 60,45,36,16,1,PT_DAKOS,SFX_THROW,30          ; baker
+        db 90,35,26,4,1,0,SFX_LYRA,45                   ; lyra player
 
 tower_sprites:
-        dw spr_cretan,spr_yiayia,spr_bride,spr_psssst,spr_cauldron,spr_baker
+        dw spr_cretan,spr_yiayia,spr_bride,spr_psssst,spr_cauldron,spr_baker,spr_lyra
 
 
 proj_sprites:
@@ -148,9 +153,11 @@ fx_tab:
         db 12,0,0,0
         dw spr_zap_a,spr_spark_b
         db 6,0,0,0
+        dw spr_note_a,spr_note_b
+        db 10,0,0,0
 
 sel_keys:
-        db K_1,K_2,K_3,K_4,K_5,K_6
+        db K_1,K_2,K_3,K_4,K_5,K_6,K_7
 
 ;------------------------------------------------------------------------------
 ; main game loop
@@ -282,7 +289,7 @@ game_init:
         if DEBUG
         ld a,DEBUG-1            ; -DDEBUG=n starts at wave n
         ld (wave_num),a
-        ld a,#3f                ; and has every defender
+        ld a,#7f                ; and has every defender
         ld (stage_unlock),a
         else
         ld hl,(stage_unlock+1)  ; the defenders this stage brings
@@ -317,7 +324,8 @@ end_game:
         call banner_show
         ld a,SFX_WAVE
         call sfx_play
-        ld a,40
+        ld a,12                 ; drawn frames (about a second) before fire counts:
+                                ; a SPACE meant for building does not skip the banner
         ld (end_wait),a
 .l:     call kbd_update
         call hud_refresh        ; the last changes reach the screen
@@ -360,19 +368,26 @@ handle_input:
         ld a,K_ESC
         call key_hit
         jr nc,.ne
-        ld a,(paused)
+        ld a,(quit_ask)
         or a
-        jr z,.pz
-        ld a,1                  ; ESC while paused: back to the title
+        jr z,.qa
+        ld a,1                  ; ESC again: back to the title
         ld (quit),a
         ret
-.pz:    call toggle_pause
+.qa:    ld a,(paused)           ; the first ESC pauses and asks
+        or a
+        call z,toggle_pause
+        ld a,1
+        ld (quit_ask),a
+        ld a,B_QUIT
+        ld c,B_PAUSE2           ; H: continue, ESC: quit
+        call banner_show
 .ne:    ld a,(paused)
         or a
         ret nz
         call cursor_input
         ld hl,sel_keys
-        ld bc,#0601
+        ld bc,#0701
 .sk:    ld a,(hl)
         call key_hit
         jr nc,.nk
@@ -429,6 +444,8 @@ toggle_pause:
         call banner_show
         jr .st
 .resume:
+        xor a                   ; and no more asking to quit
+        ld (quit_ask),a
         call banner_clear
 .st:    ld a,HUDF_STATUS
         jp hud_set
@@ -863,20 +880,31 @@ draw_tile_bg:
         call cell_offset
         ld bc,tilemap
         add hl,bc
-        ld l,(hl)
-        ld h,0
-        add hl,hl
-        ld bc,(stage_tl)
-        add hl,bc
         ld a,(hl)
-        inc hl
-        ld h,(hl)
-        ld l,a
+        call tile_at
         pop de
         push de
         call cell_xy
         call draw_tile
         pop de
+        ret
+
+; A = a tile of the tile map -> HL = its bitmap: below #80 in memory for
+; several stages, from #80 in the stage's record
+tile_at:
+        ld bc,tiles
+        bit 7,a
+        jr z,.g
+        ld bc,stage_tiles
+        and #7f
+.g:     ld l,a
+        ld h,0
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        add hl,bc
         ret
 
 ; D,E = col,row -> D,E = x,y of the cell (pixels)
@@ -1024,6 +1052,7 @@ tower_inks:
         db A_CYN&7,A_YEL&7              ; psssst
         db A_GRN&7,A_RED&7              ; cauldron
         db A_WHI&7,A_YEL&7              ; baker
+        db A_MAG&7,A_RED&7              ; lyra player
 enemy_inks:
         db A_MAG&7,A_BLU&7,A_RED&7      ; drone, guard, tank
 
@@ -1454,8 +1483,22 @@ spawn_enemy:
         inc a
         ld (gen_ctr),a
         ld (ix+E_GEN),a
-        call enemy_path
-        ld a,(hl)
+        call enemy_path         ; NZ: a walker
+        jr z,.r1
+        ld a,(ix+E_GEN)         ; every other one takes the second road, if any
+        rrca
+        jr nc,.r1
+        ld a,(stage_road2)      ; its first segment, past the first road's end
+        or a
+        jr z,.r1
+        ld (ix+E_SEG),a
+        ld c,a
+        add a,a
+        add a,c
+        ld c,a
+        ld b,0
+        add hl,bc               ; its header, just before
+.r1:    ld a,(hl)
         ld (ix+E_X),a
         inc hl
         ld a,(hl)
@@ -1811,6 +1854,8 @@ tower_think:
         jp z,fire_yiayia
         cp TT_CAULDRON
         jp z,fire_cauldron
+        cp TT_LYRA
+        jp z,fire_lyra
         ld a,(tr_dmg)
         ld c,a
         ld b,0
@@ -1960,6 +2005,41 @@ fire_cauldron:
         call spawn_fx
 .nofx:  ld a,(tr_dmg)
         ld c,1
+        call damage_enemy
+.n:     ld de,EN_SZ
+        add ix,de
+        pop bc
+        djnz .l
+        ret
+
+; his tune reaches every invader around him, walkers and drones alike (armour
+; counts), and charms the drones into slowing down
+fire_lyra:
+        ld a,2                  ; notes over two of them at most
+        ld (tmp_idx),a
+        ld ix,enemies
+        ld b,MAX_EN
+.l:     push bc
+        ld a,(ix+E_TYPE)
+        or a
+        jr z,.n
+        call in_range
+        jr nc,.n
+        ld a,(ix+E_TYPE)
+        cp ET_DRONE
+        jr nz,.w
+        ld (ix+E_SLOW),30
+.w:     ld a,(tmp_idx)
+        or a
+        jr z,.nofx
+        dec a
+        ld (tmp_idx),a
+        ld d,(ix+E_X)
+        ld e,(ix+E_Y)
+        ld a,FX_NOTE
+        call spawn_fx
+.nofx:  ld a,(tr_dmg)
+        ld c,0
         call damage_enemy
 .n:     ld de,EN_SZ
         add ix,de
@@ -2974,42 +3054,54 @@ hud_info:
 ; always count.  Before a defender is built, the bonus it would get there
 ; shows at the end of the info line, green or red.
 ;------------------------------------------------------------------------------
-; per defender type: partner type (0: none), damage factor in 16ths, its text
+; pairs: defender type, partner type, damage factor in 16ths, its text; the
+; first that applies counts
 syn_tab:
-        db 0,0
-        dw 0                                    ; cretan
-        db TT_BAKER,19
-        dw syn_t20p                             ; yiayia
-        db TT_CRETAN,24
-        dw syn_t50p                             ; bride
-        db TT_CRETAN,13
-        dw syn_t20m                             ; psssst
-        db 0,0
-        dw 0                                    ; cauldron
-        db TT_CRETAN,8
-        dw syn_t50m                             ; baker
+        db TT_YIAYIA,TT_BAKER,19
+        dw syn_t20p
+        db TT_BRIDE,TT_CRETAN,24
+        dw syn_t50p
+        db TT_PSSSST,TT_CRETAN,13
+        dw syn_t20m
+        db TT_BAKER,TT_CRETAN,8
+        dw syn_t50m
+        db TT_LYRA,TT_LYRA,8
+        dw syn_t50m
+        db TT_LYRA,TT_YIAYIA,24
+        dw syn_t50p
+        db 0
 syn_t50p: db G_PLUS,G_5,G_0,G_PCT,#ff
 syn_t20p: db G_PLUS,G_2,G_0,G_PCT,#ff
 syn_t50m: db G_MINUS,G_5,G_0,G_PCT,#ff
 syn_t20m: db G_MINUS,G_2,G_0,G_PCT,#ff
 
-; A = type, D,E = col,row -> NZ and HL = its syn_tab entry when a partner
-; is next door, Z when not.  Uses A, BC.
+; A = type, D,E = col,row -> NZ and HL = the partner byte of its syn_tab
+; pair when a partner is next door, Z when not.  Uses A, BC.
 syn_find:
-        dec a
-        add a,a
-        add a,a
-        ld l,a
-        ld h,0
-        ld bc,syn_tab
-        add hl,bc
-        ld a,(hl)
+        ld c,a
+        ld hl,syn_tab
+.e:     ld a,(hl)
+        inc hl
         or a
         ret z
-        ld (syn_loop+2),a       ; the partner, into the CP below
+        cp c
+        jr nz,.s
+        ld a,(hl)
+        ld (syn_loop+2),a       ; the partner, into the CP there
+        push bc
         push hl
         ld hl,towers
         ld b,MAX_TW
+        call syn_loop
+        pop hl
+        pop bc
+        ret nz
+.s:     inc hl
+        inc hl
+        inc hl
+        inc hl
+        jr .e
+
 syn_loop:
         ld a,(hl)               ; T_TYPE
         cp 0
@@ -3038,11 +3130,9 @@ syn_loop:
         add a,TW_SZ
         ld l,a
         djnz syn_loop
-        pop hl
         xor a
         ret
-.hit:   pop hl
-        or 1
+.hit:   or 1
         ret
 
 ; tower_think, instead of ld a,(hl) / ld (tr_dmg),a: HL = the damage in the

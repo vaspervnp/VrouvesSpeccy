@@ -29,9 +29,12 @@ LOAD_CLEAR  equ LOAD_BASE-1
 TAB_SCR     equ #5B00       ; screen line -> address: low bytes, high a page on
 TAB_BG      equ #5D00       ; playfield line -> background buffer
 SQUARES     equ #5F00       ; 64 x 16 bit
+cell_q      equ #5F80       ; the cells to draw again (2 x 64)
 IM2_TABLE   equ #FD00
 IM2_FILL    equ #FC
 IM2_JUMP    equ #FCFC
+hs_table    equ #FE01       ; above the IM 2 table: 8 x (3 glyphs, score)
+at_rects    equ hs_table+40 ; the invaders' attribute rectangles: col, row, w, h (4 x 16)
 STACK_TOP   equ IM2_JUMP
 STACK_SIZE  equ 160
 ATTRS       equ #5800
@@ -76,6 +79,7 @@ K_3         equ 26
 K_4         equ 27
 K_5         equ 28
 K_6         equ 36
+K_7         equ 35
 K_ENTER     equ 48
 K_L         equ 49
 K_H         equ 52
@@ -150,36 +154,26 @@ start:
         inc a
         cp NUM_STAGES
         jr c,.stage
-        call ending_show        ; all stages won: the feast at the school
+        call ending_show        ; all stages won: the wedding feast
         jr .main
 
 ;------------------------------------------------------------------------------
 ; the stages
 ;------------------------------------------------------------------------------
-; A = stage: its record to STAGE_AREA, its tile list
+; (stage): its record to STAGE_AREA
 stage_load:
         call stage_entry
-        ld e,(hl)
-        inc hl
-        ld d,(hl)
-        inc hl
-        inc hl
-        inc hl
         ld a,(hl)
         inc hl
         ld h,(hl)
         ld l,a
-        ld (stage_tl),hl
-        ex de,hl
         ld de,STAGE_AREA
         jp lz_unpack
 
 ; -> HL = the current stage's entry in stage_tab
 stage_entry:
         ld a,(stage)
-        ld l,a
         add a,a
-        add a,l
         add a,a
         ld l,a
         ld h,0
@@ -187,9 +181,8 @@ stage_entry:
         add hl,de
         ret
 
-; the stage's colours onto the playfield (unpacked into the work buffer),
-; and kept in PF_AT
-stage_attrs:
+; (stage): its colours into the work buffer
+attrs_unpack:
         call stage_entry
         inc hl
         inc hl
@@ -198,7 +191,12 @@ stage_attrs:
         ld h,(hl)
         ld l,a
         ld de,WORKBUF
-        call lz_unpack
+        jp lz_unpack
+
+; the stage's colours onto the playfield (unpacked into the work buffer),
+; and kept in PF_AT
+stage_attrs:
+        call attrs_unpack
         ld hl,WORKBUF
         ld de,ATTRS+32+PF_COL
         ld b,PF_H/8
@@ -221,7 +219,7 @@ stage_attrs:
         ret
 
 ;------------------------------------------------------------------------------
-; the ending: the village feast in front of the school.  On a 128K the
+; the ending: the wedding feast in front of the church.  On a 128K the
 ; picture is in bank 1; a 48K reads it from the tape, straight onto the
 ; screen (SPACE skips it).
 ;------------------------------------------------------------------------------
@@ -374,11 +372,9 @@ ttimer:     defs 2
 tmp_i:      defs 1
 tmp_y:      defs 1
 stage:      defs 1
-stage_tl:   defs 2
 difficulty: defs 1          ; 0 medium, 1 hard, 2 hardest, 3 easy
 rt_lives:   defs 1
 rt_chk:     defs 2
-hs_table:   defs 40         ; 8 x (3 glyphs, score)
 hs_new:     defs 1
 hs_pos:     defs 1
 hs_idx:     defs 3
@@ -401,6 +397,7 @@ en_count:   defs 1
 gen_ctr:    defs 1
 game_over:  defs 1
 quit:       defs 1
+quit_ask:   defs 1          ; ESC pressed once: a second one quits
 paused:     defs 1
 cur_c:      defs 1
 cur_r:      defs 1
@@ -438,7 +435,6 @@ sp_pdmg:    defs 1
 sp_pflag:   defs 1
 end_wait:   defs 1
 cell_qn:    defs 1
-cell_q:     defs 2*64
 ban_req:    defs 1          ; 1 draw the banner, 2 take it off (bg_pending)
 syn_cnt:    defs 1          ; defenders with a neighbour bonus (syn_update)
 syn_pass:   defs 1
@@ -448,7 +444,6 @@ frame_acc:  defs 1
 dbg_el:     defs 1
 ban_shown:  defs 1          ; the banner is on the screen (its colours too)
 at_n:       defs 1          ; invaders coloured last frame
-at_rects:   defs 4*16       ; their attribute rectangles: col, row, w, h
 at_ink:     defs 1
 at_w:       defs 1
 at_skip:    defs 1
@@ -456,7 +451,7 @@ PF_AT:      defs PF_W*PF_H/8 ; the playfield's colours, the defenders' inks in
 game_vars_end:
 STAGE_AREA: defs STAGE_SIZE
 bss_end:
-SAVEBUF:    defs 2048       ; what the sprites cover (gfx.asm)
+SAVEBUF:    defs 1280       ; what the sprites cover (gfx.asm)
 SAVE_END:
 WORKBUF:    defs PF_W*PF_H
             defs 2          ; a sprite's last byte may fall just past it
@@ -466,7 +461,7 @@ work_end:
         assert lo(enemies) == 0 && EN_SZ*MAX_EN == 256 && lo(projs) == 0
         assert lo(CLIST) == 0
         assert work_end <= STACK_TOP-STACK_SIZE
-        assert SQUARES+128 <= LOAD_BASE
+        assert SQUARES+128 <= cell_q && cell_q+128 <= LOAD_BASE
 
         print "code+data: ",{hex}bin_start,"-",{hex}code_end," (",code_end-bin_start," bytes)"
         print "variables to ",{hex}bss_end,", buffers to ",{hex}work_end,", free ",STACK_TOP-STACK_SIZE-work_end

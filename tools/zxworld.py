@@ -21,6 +21,7 @@ PFW, PFH = MW * CS, MH * CS
 
 
 class Stage:
+    ground2 = None      # a second road for the walkers
     harder = 0          # the CPC's toughness plus this: the shorter roads are easier to cover
 
     def __init__(self, **kw):
@@ -134,6 +135,50 @@ STAGES = [
                (12, 8), (12, 7)],
         air=[(0, 1), (4, 1), (10, 7), (12, 7)],
         crop=(160, 56), block=(10, 3, 5, 4), sacks=[(10, 6), (11, 6), (12, 6), (13, 6), (14, 6)], harder=4),
+    Stage(map=[
+        "R.T..R..R..T.R.",
+        "..............T",
+        "R.WWW.S.R.WWW.R",
+        "..R.........S.T",
+        "R...S.WWW.R.T.R",
+        "T...........R.T",
+        "KKKKK.R..S....R",
+        "KKKKK........R.",
+        "KKKKK..R.S..R.T",
+        "KKKKK...T...R.R",
+    ], ground=[(0, 1), (13, 1), (13, 3), (2, 3), (2, 5), (12, 5), (12, 7), (6, 7), (6, 9), (5, 9)],
+        air=[(0, 1), (10, 1), (6, 5), (6, 9), (5, 9)],
+        crop=(0, 96), block=(0, 6, 5, 4), sacks=[(0, 9), (1, 9), (2, 9), (3, 9), (4, 9)], harder=1),
+    Stage(map=[
+        "T.T..KKKKK..T.T",
+        ".J...KKKKK...J.",
+        "T....KKKKK....T",
+        "..T.J......J.T.",
+        "T.............T",
+        "...............",
+        "T......J......T",
+        "..J.........J..",
+        "T...J.....J...T",
+        "T.T..T.J.T..T.T",
+    ], ground=[(1, 9), (1, 4), (3, 4), (3, 8), (5, 8), (5, 4), (7, 4), (7, 3)],
+        ground2=[(13, 9), (13, 4), (11, 4), (11, 8), (9, 8), (9, 4), (7, 4), (7, 3)],
+        air=[(0, 9), (5, 4), (7, 4), (7, 3)],
+        crop=(80, 0), block=(5, 0, 5, 3), sacks=[(5, 2), (6, 2), (7, 2), (8, 2), (9, 2)], harder=1),
+    Stage(map=[
+        "T..Y...T..YKKKK",
+        "...........KKKK",
+        "T.DDD.DDD..KKKK",
+        "Y..........KKKK",
+        "T..DDD.DD..KKKK",
+        "Y..........T..Y",
+        "T.DDD.DDD..T..T",
+        "...........Y..T",
+        "T.............T",
+        "T.T..Y.T..Y..YT",
+    ], ground=[(9, 0), (9, 3), (1, 3), (1, 5), (9, 5), (9, 7), (1, 7), (1, 8), (13, 8),
+               (13, 5)],
+        air=[(0, 8), (3, 5), (13, 5)],
+        crop=(176, 0), block=(11, 0, 4, 5), sacks=[(11, 4), (12, 4), (13, 4), (14, 4), (14, 3)], harder=1),
 ]
 for _k, _st in enumerate(STAGES):
     _cpc = world.STAGES[_k]
@@ -151,6 +196,12 @@ def carve_path(grid, wps):
         return world.carve_path(grid, wps)
     finally:
         world.MW, world.MH = saved
+
+
+def road_grid(st):
+    """the map with its road, or two, carved in"""
+    grid = carve_path(st.map, st.ground)
+    return carve_path(grid, st.ground2) if st.ground2 else grid
 
 
 def double(rows):
@@ -182,6 +233,10 @@ def cpc_cells(grid):
                         cv.rect(c * 8 + 6, r * 12, c * 8 + 6, r * 12 + 11, art.CH['W'])
                 elif t == 'K':
                     pass
+                elif t == 'R':
+                    world.rock_cell(cv, c, r)
+                elif t == 'D':
+                    world.table_cell(cv, grid, c, r)
                 else:
                     world.grass_cell(cv, c, r, None if t == '.' else 3)
                     x0, y0 = c * 8, r * 12
@@ -195,6 +250,10 @@ def cpc_cells(grid):
                         cv.blit(world.CYPRESS, x0, y0)
                     elif t == 'X':
                         cv.blit(world.GRAVE_A if (c + r) % 4 < 2 else world.GRAVE_B, x0, y0)
+                    elif t == 'S':
+                        cv.blit(world.SHEEP if (c + r) % 2 else art.mirror(world.SHEEP), x0, y0)
+                    elif t == 'J':
+                        cv.blit(world.JAR, x0, y0)
         return cv
     finally:
         world.MW, world.MH = saved
@@ -203,13 +262,15 @@ def cpc_cells(grid):
 def render(k, with_sacks=True):
     """stage k -> rows of pen characters, PFW x PFH"""
     st = STAGES[k]
-    grid = carve_path(st.map, st.ground)
+    grid = road_grid(st)
     cv = cpc_cells(grid)
     pix = [[zc.PEN_OF[cv.p[r * 12 + (y % CS) * 3 // 4][c * 8 + (x % CS) // 2]]
             for x in range(PFW) for c in [x // CS]]
            for y in range(PFH) for r in [y // CS]]
     # the building and its yard, from the CPC's stage with no sacks
     cgrid = world.carve_path(st.cpc.map, st.cpc.ground)
+    if st.cpc.ground2:
+        cgrid = world.carve_path(cgrid, st.cpc.ground2)
     full = world.render_background(st.cpc, cgrid, False)
     wide = zc.widen([[zc.PEN_OF[v] for v in row] for row in full.p])
     cx, cy = st.crop

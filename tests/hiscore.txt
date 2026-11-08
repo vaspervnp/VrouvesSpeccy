@@ -6,6 +6,8 @@ pokew score 7777
 tap h
 run 10
 tap break
+run 10
+tap break                    ; asks, then quits
 run 80
 shot hs_name
 tap up                       ; A -> the last letter, a space

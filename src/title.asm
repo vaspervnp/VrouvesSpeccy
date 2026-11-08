@@ -9,6 +9,8 @@ HS_PAGE     equ 4
 HS_N        equ 8
 TP_Y        equ 24              ; the pages: lines 24-167
 TSCENE_Y    equ 32              ; the scene on the first page
+TSCENE_R0   equ 5               ; the first stage's rows it shows
+TSCENE_ROWS equ 5
 
 title_screen:
         call tgt_scr
@@ -261,10 +263,11 @@ page_clear:
 
 ; the first page's scene: a corner of the Kafenio, the defenders at work
 title_scene:
-        ld hl,tscene            ; its tile map and colours, into the work buffer
-        ld de,WORKBUF
-        call lz_unpack
-        ld hl,WORKBUF
+        xor a                   ; the first stage: its tiles, its colours
+        ld (stage),a
+        call stage_load
+        call attrs_unpack
+        ld hl,tilemap+TSCENE_R0*NCOL
         ld e,TSCENE_Y
         ld b,TSCENE_ROWS
 .r:     push bc
@@ -273,15 +276,8 @@ title_scene:
 .c:     push bc
         push hl
         push de
-        ld l,(hl)
-        ld h,0
-        add hl,hl
-        ld bc,tscene_tiles
-        add hl,bc
         ld a,(hl)
-        inc hl
-        ld h,(hl)
-        ld l,a
+        call tile_at
         call draw_tile
         pop de
         pop hl
@@ -296,6 +292,7 @@ title_scene:
         ld e,a
         pop bc
         djnz .r
+        ld hl,WORKBUF+TSCENE_R0*2*PF_W
         ld de,ATTRS+(TSCENE_Y/8)*32+PF_COL
         ld b,TSCENE_ROWS*2
 .a:     push bc
@@ -384,6 +381,8 @@ def_list:
         db T_CAST5,112,0,A_RED&7
         dw spr_baker
         db T_CAST6,128,A_WHI&7,A_YEL&7
+        dw spr_lyra
+        db T_CAST7,144,A_MAG&7,A_RED&7
         dw 0
 
 inv_list:

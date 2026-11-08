@@ -23,7 +23,7 @@ GREEN = (0, 215, 0)
 def icon(name, path, inks, scale=6):
     """the sprite as in the game, on grass: its inks for the top and the bottom
     (black where green would be green on green)"""
-    mask, ink = zxdata.sprite_mono(name, dict(art.SPRITES)[name])
+    mask, ink = zxdata.sprite_mono(name, dict(art.SPRITES + art.EXTRA_SPRITES)[name])
     h, w = len(mask), len(mask[0])
     im = Image.new("RGB", (w + 4, h + 4), GREEN)
     for y in range(h):
@@ -85,9 +85,9 @@ def main():
                             ("yiayia", "spr_yiayia", (7, 1)), ("bride", "spr_bride", (6, 7)),
                             ("baker", "spr_baker", (7, 6)), ("cauldron", "spr_cauldron", (4, 2)),
                             ("drone", "spr_drone_a", (3, 3)), ("guard", "spr_guard_a", (1, 1)),
-                            ("tank", "spr_tank_va", (2, 2))):
+                            ("tank", "spr_tank_va", (2, 2)), ("lyra", "spr_lyra", (3, 2))):
         icon(spr, os.path.join(IMG, name + ".png"), inks)
-    for k in range(1, 8):       # the playfield of the previews (3x)
+    for k in range(1, 11):       # the playfield of the previews (3x)
         im = Image.open(os.path.join(ROOT, "build", "preview", "stage%d.png" % k))
         im.crop((24, 24, 24 + 720, 24 + 480)).save(os.path.join(IMG, "stage%d.png" % k))
     screens()

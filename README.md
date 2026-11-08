@@ -1,7 +1,7 @@
 # LET'S GO FOR VROUVES / ΠΑΜΕ ΓΙΑ ΒΡΟΥΒΕΣ — ZX Spectrum
 
 A top-down tower defence game for the **ZX Spectrum 48K and 128K**, written in **Z80
-assembly**. It is the Spectrum version of the [Amstrad CPC game](../VrouvesCPC): the same seven
+assembly**. It is the Spectrum version of the [Amstrad CPC game](../VrouvesCPC): the same ten
 stages, waves, defenders, invaders, rules, score, lives, texts (English and Greek) and music;
 the picture, the sound, the keys and the tape are the Spectrum's.
 
@@ -36,11 +36,12 @@ from the tape when the last stage is won (SPACE skips it).
 | Key | Action |
 | --- | --- |
 | Cursor keys (CAPS SHIFT + 5-8) / Q A O P / Kempston | Move the build cursor |
-| 1 – 6 | Choose a defender |
+| 1 – 7 | Choose a defender |
 | SPACE / ENTER / FIRE | Build on the cursor cell |
 | S / DELETE | Sell the defender under the cursor (half price back) |
 | N | Call the next wave now (half the seconds left on the countdown are paid as a bonus) |
-| H | Pause / continue (BREAK while paused quits to the title) |
+| H | Pause / continue |
+| BREAK (CAPS SHIFT + SPACE) | Asks to quit: a second BREAK goes to the title, H plays on |
 | L | Switch English / Greek at any time |
 | M | Music on / off |
 
@@ -52,16 +53,16 @@ while the Spectrum is on. There is no Sinclair joystick: its keys are the defend
 ## The game
 
 Everything about the rules is the CPC's, tick for tick (see its
-[README](../VrouvesCPC/README.md)): six defenders that join the village stage by stage, the
+[README](../VrouvesCPC/README.md)): seven defenders that join the village stage by stage (no Bride at her own wedding), the
 neighbour bonus (three defenders at most), three invaders, ten waves a stage, the score, the
-lives, and the feast at the school when the last stage is won. `src/game.asm` is the CPC's
+lives, and the Bride's wedding when the last stage is won. `src/game.asm` is the CPC's
 game logic as it was; only the drawing, the HUD and the banner are new.
 
 ## On the Spectrum
 
 - **The playfield**: 15 × 10 cells of 16 × 16 pixels, 240 × 160 at (8, 8): each cell is
   exactly 2 × 2 attribute cells, so no two cells share a colour. The stages are the
-  Spectrum's own maps (`tools/zxworld.py`): the same seven places, defenders, invaders and
+  Spectrum's own maps (`tools/zxworld.py`): the same ten places, defenders, invaders and
   waves, on smaller roads laid out for this grid; a short road is easier to cover, so the
   invaders come with the health of a few waves later (`harder`). A cell's art is the CPC's (8 × 12 Mode 0
   pixels), doubled across and stretched 4/3 down; the buildings and their yards are cut from
@@ -78,9 +79,10 @@ game logic as it was; only the drawing, the HUD and the banner are new.
   colours the attribute cells it covers, magenta drones, blue guards, red tanks: the
   Spectrum's own clash, the black of the grass or the road round it takes its colour. The
   playfield's colours are kept (`PF_AT`), and each frame the invaders' cells get them back.
-- **Tiles**: the stages are drawn from 206 tiles of 16 × 16 shared by all of them (32 bytes
-  each); a stage has its tile map, cell types, sacks, paths, waves and texts packed (LZ,
-  `tools/lz.py`, `src/lz.asm`), and its attributes.
+- **Tiles**: 16 × 16 (32 bytes each). The 41 that several stages share are kept in memory; the
+  others, mostly the buildings, are packed with their stage: its tile map, cell types, sacks,
+  paths, waves, texts and own tiles (LZ, `tools/lz.py`, `src/lz.asm`), and its attributes, are
+  unpacked when it starts. The title's scene is the first stage's bottom half.
 - **No flicker**: the playfield is drawn in a work buffer and only what changed is copied to the
   screen. A sprite saves what it covers before it is drawn; each frame they are all taken off
   again, newest first, the background's changes (a defender built, a sack gone, the banner)
@@ -96,7 +98,7 @@ game logic as it was; only the drawing, the HUD and the banner are new.
 - **The ending**: on a 128K, the loader puts the picture in bank 1; a 48K reads it off the tape
   with the ROM's LD-BYTES (past its BREAK check, so SPACE just skips it).
 
-Memory: `#5B00` line tables, `#6000` the code and data (tiles 6.6K, stages 5.3K, text 2.6K,
+Memory: `#5B00` line tables, `#6000` the code and data (tiles 1.3K, stages 11.6K, text 2.8K,
 sprites 1.7K, code 9.2K), then entities, variables, the current stage, the save buffer and
 the work buffer up to `#EF60`; the IM 2 table at `#FD00`.
 

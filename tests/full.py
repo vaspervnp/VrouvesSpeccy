@@ -25,7 +25,7 @@ def tap(spec, keys, hold=2, gap=12):
 
 def cells_by_road(k):
     st = world.STAGES[k]
-    grid = world.carve_path(st.map, st.ground)  # 15 x 10
+    grid = world.road_grid(st)  # 15 x 10
     out = []
     for r in range(world.MH):
         for c in range(world.MW):
@@ -59,7 +59,7 @@ def main():
     for k in range(len(world.STAGES)):
         assert spec.peek(S('stage')) == k, (k, spec.peek(S('stage')))
         unlock = spec.peek(S('stage_unlock'))
-        types = [t for t in range(1, 7) if unlock >> (t - 1) & 1]
+        types = [t for t in range(1, 8) if unlock >> (t - 1) & 1]
         spec.poke(S('funds'), 0x10)
         spec.poke(S('funds') + 1, 0x27)
         for i, (c, r) in enumerate(cells_by_road(k)):
@@ -86,7 +86,7 @@ def main():
               % (k + 1, built, go, spec.peek(S('hp')),
                  spec.peek(S('score')) | spec.peek(S('score') + 1) << 8, frames))
         assert go == 1, "stage %d lost" % (k + 1)
-        spec.run_frames(200)            # the banner waits 40 passes for fire
+        spec.run_frames(200)            # the banner waits a while for fire
         spec.screenshot(os.path.join(out, 'stage%d_won.png' % (k + 1)))
         tap(spec, ['space'])
         spec.run_frames(60)

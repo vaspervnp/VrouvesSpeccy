@@ -25,6 +25,19 @@ expect paused 1
 shot paused_gr
 tap break
 run 30
+expect quit 0                     ; BREAK asks first
+expect quit_ask 1
+shot quit_ask
+tap h
+run 30
+expect quit_ask 0                 ; H plays on
+expect paused 0
+tap break
+run 30
+expect paused 1
+expect quit_ask 1
+tap break
+run 30
 expect quit 1
 run 60
 shot title_again

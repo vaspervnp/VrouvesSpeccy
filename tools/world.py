@@ -1194,8 +1194,433 @@ def cemetery_base(cv, with_sacks):
 STAGES_FLAG7 = (60, 61)
 
 
+# the sheepfold on the mountain: 'R' a rock, 'S' a sheep; the mitato (the
+# shepherd's stone hut) is 0-4 x 9-11, its yard 0-4 x 12-13
+MAP8 = [
+    "R.T..R...R...T..R..R",
+    "..................RT",
+    "R.WWW..S..R.WWW..R.R",
+    "..R...T.R....S...R.T",
+    "R.................T.",
+    "T.R..S.WWWW...R...R.",
+    "..S.R......R..T..S..",
+    "R..................T",
+    "..WWW..R..S.WWWW..RT",
+    "KKKKK..R......S..R..",
+    "KKKKK...............",
+    "KKKKK..........R..RT",
+    "PPPPP............S..",
+    "PPPPP.R..T...R...R.R",
+]
+GROUND8 = [(0, 1), (17, 1), (17, 4), (2, 4), (2, 7), (16, 7), (16, 10), (7, 10),
+           (7, 12), (5, 12)]
+AIR8 = [(0, 1), (5, 6), (5, 12)]
+SACKS8 = [(0, 12), (2, 12), (4, 12), (1, 13), (3, 13)]
+
+# the olive press: 'J' a storage jar; the press is 7-12 x 0-2, its yard
+# 7-12 x 3.  Two roads, one from each side, meet below the yard.
+MAP9 = [
+    "T.T..T.KKKKKK.T..T.T",
+    "..J....KKKKKK....J..",
+    "T......KKKKKK......T",
+    "..T.J..PPPPPP.J.T...",
+    "T..................T",
+    ".T...J........J...T.",
+    "....................",
+    "T..........J.......T",
+    "..J..T..........T...",
+    "T.........J........T",
+    "...J..........J.....",
+    "T....T..........T..T",
+    "....................",
+    "T.T..T..J..J..T..T.T",
+]
+GROUND9 = [(1, 13), (1, 6), (4, 6), (4, 12), (7, 12), (7, 6), (9, 6), (9, 4)]
+GROUND9B = [(18, 13), (18, 6), (15, 6), (15, 12), (12, 12), (12, 6), (9, 6), (9, 4)]
+AIR9 = [(0, 13), (9, 4)]
+SACKS9 = [(7, 3), (8, 3), (10, 3), (11, 3), (12, 3)]
+
+# the wedding: the village church of Stage 02, its courtyard decked out;
+# 'D' a wedding table, where only Psssst can go
+MAP10 = [
+    "T..Y...T..Y..T.KKKKK",
+    "...............KKKKK",
+    "T.DDD..DDD..Y..KKKKK",
+    "Y..............KKKKK",
+    "T..............PPPPP",
+    "Y.DDD..DDD.....PPPPP",
+    "T..............Y...T",
+    "...................T",
+    "T.DDD..DDD..T......Y",
+    "Y.................T.",
+    "T..................T",
+    "Y..DD..DD..DD.....YT",
+    "....................",
+    "T.T..Y..T..Y..T..Y.T",
+]
+GROUND10 = [(0, 1), (12, 1), (12, 4), (2, 4), (2, 7), (12, 7), (12, 10), (2, 10),
+            (2, 12), (17, 12), (17, 6)]
+AIR10 = [(0, 12), (6, 6), (17, 6)]
+SACKS10 = SACKS2
+
+
+ROCK_A = [
+    "........",
+    "........",
+    "...kkk..",
+    "..keeek.",
+    ".keWeeek",
+    ".keeeeek",
+    "keWeeeek",
+    "keeeeeek",
+    "keeeeekk",
+    ".kkkkkk.",
+    "........",
+    "........",
+]
+ROCK_B = [
+    "........",
+    "........",
+    "........",
+    "........",
+    "...kkkk.",
+    "..kWeeek",
+    ".keeeeek",
+    "keeeeeek",
+    "keeeeekk",
+    ".kkkkkk.",
+    "........",
+    "........",
+]
+SHEEP = [
+    "........",
+    "........",
+    "........",
+    "..WWWW..",
+    ".WWWWWWk",
+    "WWWWWWkk",
+    "WWWWWWks",
+    "WWWWWW..",
+    ".WWWWW..",
+    ".k.k.k..",
+    ".k.k.k..",
+    "........",
+]
+JAR = [
+    "..kkkk..",
+    "..kork..",
+    ".korrrk.",
+    "korrrrok",
+    "korrrrok",
+    "koryyrok",
+    "korrrrok",
+    "korrrrok",
+    ".korrok.",
+    ".korrok.",
+    "..kkkk..",
+    "........",
+]
+SHEPHERD = [
+    "..kkk...",
+    ".kkkkk..",
+    "..sss..r",
+    "..sks..r",
+    ".rrrrr.r",
+    "rrrrrrsr",
+    "rrrrrr.r",
+    "rrrrrr.r",
+    ".hhhh..r",
+    ".hh.hh.r",
+    ".kk.kk.r",
+]
+GROOM = [
+    "..kkk..",
+    ".kkkkk.",
+    "..sss..",
+    "..sss..",
+    ".kWWWk.",
+    "kkWRWkk",
+    "kkkWkkk",
+    "kkkWkky",
+    ".kkkkk.",
+    ".kk.kk.",
+    ".kk.kk.",
+]
+
+
+def rock_cell(cv, c, r):
+    grass_cell(cv, c, r, 3)
+    cv.blit(ROCK_A if (c + 2 * r) % 3 else ROCK_B, c * TW, r * TH)
+
+
+def table_cell(cv, grid, c, r):
+    """a wedding table under a white cloth, guests along both sides"""
+    grass_cell(cv, c, r, 3)
+    K, Wh, E, O, r_, R, s, Y = (art.CH[k] for k in "kWeorRsy")
+    x0, y0 = c * TW, r * TH
+
+    def d(cc):
+        return 0 <= cc < MW and grid[r][cc] == 'D'
+    xa = 0 if d(c - 1) else 1
+    xb = TW - 1 if d(c + 1) else TW - 2
+    cv.rect(x0 + xa, y0 + 3, x0 + xb, y0 + 8, Wh)
+    for x in range(xa, xb + 1):
+        cv.set(x0 + x, y0 + 2, K)
+        cv.set(x0 + x, y0 + 9, K)
+    if not d(c - 1):
+        for y in range(2, 10):
+            cv.set(x0 + xa, y0 + y, K)
+    if not d(c + 1):
+        for y in range(2, 10):
+            cv.set(x0 + xb, y0 + y, K)
+    # plates, the bread and the wine
+    cv.set(x0 + 2, y0 + 4, E)
+    cv.set(x0 + 5, y0 + 7, E)
+    cv.set(x0 + 4, y0 + 5, O)
+    cv.set(x0 + 5, y0 + 5, O)
+    cv.set(x0 + 2, y0 + 6, R)
+    cv.set(x0 + 2, y0 + 7, r_)
+    # the guests: heads seen from above, hair and a shoulder of their clothes
+    for k, gx in enumerate((1, 5)):
+        hair = "krkyke"[(c + r + k) % 6]
+        cloth = "BRkeBp"[(c * 2 + r + k) % 6]
+        cv.set(x0 + gx, y0 + 0, art.CH[hair])
+        cv.set(x0 + gx + 1, y0 + 0, art.CH[hair])
+        cv.set(x0 + gx, y0 + 1, art.CH[cloth])
+        cv.set(x0 + gx + 1, y0 + 1, s)
+    for k, gx in enumerate((3,)):
+        hair = "ykrk"[(c + r) % 4]
+        cv.set(x0 + gx, y0 + 10, s)
+        cv.set(x0 + gx + 1, y0 + 10, art.CH[hair])
+        cv.set(x0 + gx, y0 + 11, art.CH[hair])
+        cv.set(x0 + gx + 1, y0 + 11, art.CH[hair])
+
+
+def stone_floor(cv, cells):
+    K, Wh, E = art.CH['k'], art.CH['W'], art.CH['e']
+    for (c, r_) in cells:
+        x0, y0 = c * TW, r_ * TH
+        for y in range(TH):
+            for x in range(TW):
+                yy = y0 + y
+                xx = x0 + x + (4 if (yy // 6) % 2 else 0)
+                cv.set(x0 + x, yy, K if yy % 6 == 5 or xx % 8 == 7 else Wh if (xx + yy) % 11 == 0 else E)
+
+
+def sacks_on(cv, sacks):
+    for (c, r_) in sacks:
+        sx, sy = c * TW, r_ * TH
+        cv.blit(SACK, sx, sy + 1)
+        cv.blit(SACK, sx + 4, sy + 2)
+
+
+# the mitato of Stage 08: cells 0-4 x 9-11, the yard 0-4 x 12-13
+MI_Y0, MI_Y1, MIYARD_Y0 = 9 * TH, 12 * TH - 1, 12 * TH
+STAGES_FLAG8 = (17, 99)
+
+
+def mitato(cv):
+    K, Wh, E, r, O, G, T, R, Y = (art.CH[k] for k in "kWerogtRy")
+    x0, x1, y0, y1 = 0, 5 * TW - 1, MI_Y0, MI_Y1
+    cv.rect(x0, y0, x1, y1, G)
+    # dry-stone walls, round at the corners, of rough grey stones
+    for y in range(y0 + 2, y1 + 1):
+        for x in range(x0 + 1, x1):
+            u, v = (x - x0) / (x1 - x0), (y - y0) / (y1 - y0)
+            if (u - 0.5) ** 2 * 3 + (v - 0.55) ** 2 * 2.4 > 1:
+                continue
+            row = (y - y0) // 4
+            cv.set(x, y, K if (y - y0) % 4 == 3 or (x + row * 3) % 7 == 6 else
+                   Wh if (x * 3 + y) % 13 == 0 else E)
+    # the flat roof of slabs with grass growing on it
+    for x in range(x0 + 6, x1 - 5):
+        for y in range(y0 + 3, y0 + 9):
+            cv.set(x, y, K if y in (y0 + 3, y0 + 8) else (G if (x + y) % 5 else T))
+    # the low door toward the yard, and the smoke of the cheese fire
+    cv.rect(16, y1 - 12, 23, y1, K)
+    cv.rect(17, y1 - 10, 22, y1, r)
+    cv.rect(19, y1 - 8, 20, y1, Y)
+    for (x, y) in ((30, y0 + 1), (31, y0), (32, y0 + 2), (33, y0 + 1)):
+        cv.set(x, y, Wh)
+    # flagpole on the roof (the cloth is the animated flag sprite)
+    fx, fy = STAGES_FLAG8[0] * 2, STAGES_FLAG8[1]
+    for y in range(fy, fy + 15):
+        cv.set(fx, y, K if y == fy + 14 else r)
+
+
+def mitato_yard(cv, with_sacks):
+    K, Wh, E, O, Y, R, r = (art.CH[k] for k in "kWeoyRr")
+    stone_floor(cv, [(c, r_) for c in range(5) for r_ in (12, 13)])
+    for x in range(0, 5 * TW):
+        cv.set(x, MIYARD_Y0, K)
+    for y in range(MIYARD_Y0, PFH):
+        cv.set(5 * TW - 1, y, K)
+    # the cheese cauldron on its fire, and cheese wheels on a board
+    cv.rect(13, 150, 22, 157, K)
+    cv.rect(14, 151, 21, 156, E)
+    cv.rect(15, 152, 20, 153, Wh)
+    cv.rect(14, 158, 21, 159, R)
+    cv.set(15, 160, Y)
+    cv.set(19, 160, Y)
+    for (wx, wy) in ((25, 159), (30, 159), (27, 163)):
+        cv.rect(wx, wy, wx + 3, wy + 2, K)
+        cv.rect(wx, wy, wx + 2, wy + 1, Y)
+    cv.blit(SHEPHERD, 30, MIYARD_Y0 + 1)
+    if with_sacks:
+        sacks_on(cv, SACKS8)
+
+
+def mitato_base(cv, with_sacks):
+    mitato(cv)
+    mitato_yard(cv, with_sacks)
+
+
+# the olive press of Stage 09: cells 7-12 x 0-2, the yard 7-12 x 3
+OP_X0, OP_X1, OP_Y1 = 7 * TW, 13 * TW - 1, 3 * TH - 1
+STAGES_FLAG9 = (50, 1)
+
+
+def olive_press(cv):
+    K, Wh, E, B, O, r, R, Y, T = (art.CH[k] for k in "kWeBorRyt")
+    x0, x1, y1 = OP_X0, OP_X1, OP_Y1
+    # tiled roof, then the stone front
+    for y in range(0, 14):
+        for x in range(x0, x1 + 1):
+            cv.set(x, y, r if y % 3 == 2 else O)
+    for x in range(x0, x1 + 1):
+        cv.set(x, 14, K)
+    for y in range(15, y1 + 1):
+        for x in range(x0, x1 + 1):
+            row = (y - 15) // 4
+            cv.set(x, y, K if (y - 15) % 4 == 3 or (x + row * 3) % 8 == 7 else E)
+    for y in range(0, y1 + 1):
+        cv.set(x0, y, K)
+        cv.set(x1, y, K)
+    # the sign, white on blue
+    cv.rect(x0 + 1, 15, x0 + 36, 23, K)
+    cv.rect(x0 + 2, 16, x0 + 35, 22, B)
+    cv.text("ΛΙΟΤΡΙΒΙ", x0 + 3, 17, Wh)
+    # the big door to the yard, half open on the press inside
+    cv.rect(66, 25, 81, y1, K)
+    cv.rect(67, 26, 80, y1, r)
+    cv.rect(74, 27, 80, y1, K)
+    cv.rect(75, 29, 79, 34, E)
+    cv.set(77, 31, Wh)
+    # an olive branch over the stone
+    for (x, y) in ((88, 33), (89, 32), (90, 31), (91, 30), (92, 29), (93, 28), (94, 27)):
+        cv.set(x, y, r)
+    for (x, y) in ((90, 29), (92, 31), (93, 26), (95, 29), (88, 31)):
+        cv.set(x, y, T)
+        cv.set(x + 1, y, T)
+    cv.set(94, 30, K)
+    cv.set(89, 30, K)
+    # flagpole (the cloth is the animated flag sprite)
+    fx, fy = STAGES_FLAG9[0] * 2, STAGES_FLAG9[1]
+    for y in range(fy, fy + 15):
+        cv.set(fx, y, K if y == fy + 14 else r)
+
+
+def press_yard(cv, with_sacks):
+    K, Wh, E, O, r, Y, T = (art.CH[k] for k in "kWeoryt")
+    stone_floor(cv, [(c, 3) for c in range(7, 13)])
+    for x in range(OP_X0, OP_X1 + 1):
+        if not 9 * TW <= x < 10 * TW:
+            cv.set(x, 4 * TH - 1, K)
+    # the millstone, upright on its stone bed, and a trough of oil
+    cv.rect(57, 37, 70, 46, K)
+    cx, cy = 63.5, 41.5
+    for y in range(36, 47):
+        for x in range(56, 72):
+            d = math.hypot((x - cx) * 2, y - cy)
+            if d <= 10:
+                cv.set(x, y, K if d > 9 else Wh if d < 2 else E)
+    if with_sacks:
+        sacks_on(cv, SACKS9)
+
+
+def olive_press_base(cv, with_sacks):
+    olive_press(cv)
+    press_yard(cv, with_sacks)
+
+
+def wedding_yard(cv, with_sacks):
+    """the courtyard of Stage 02 for the wedding: the groom at the door,
+    flowers and white ribbons"""
+    K, Wh, E, O, Y, B, R, P = (art.CH[k] for k in "kWeoyBRs")
+    x0, x1, y0, y1 = CH_X0, PFW - 1, YARD_Y0, YARD_Y0 + 2 * TH - 1
+    for y in range(y0, y1 + 1):
+        for x in range(x0, x1 + 1):
+            u, v = x % TW, (y - y0) % TH
+            d = abs(u - 3.5) * 2 + abs(v - 5.5)
+            cv.set(x, y, Wh if 5 <= d < 6.5 else R if d < 1.5 else E)
+    gx0, gx1 = 17 * TW, 18 * TW - 1
+    for x in range(x0, x1 + 1):
+        if not gx0 <= x <= gx1:
+            cv.set(x, y1, K)
+            cv.set(x, y1 - 1, Wh)
+    for y in range(y0, y1 + 1):
+        cv.set(x0, y, K)
+        cv.set(x0 + 1, y, Wh)
+    # ribbons and flowers along the wall
+    for x in range(x0 + 2, x1 + 1, 3):
+        cv.set(x, y1 - 2, R if (x // 3) % 2 else Y)
+    for (fx_, fy_) in ((x0 + 3, y0 + 2), (x1 - 3, y0 + 2)):
+        cv.rect(fx_ - 1, fy_ - 1, fx_ + 1, fy_ + 1, R)
+        cv.set(fx_, fy_, Y)
+    cv.blit(GROOM, 19 * TW - 7, y0 + TH - 1)
+    if with_sacks:
+        sacks_on(cv, SACKS10)
+
+
+def wedding_base(cv, with_sacks):
+    church(cv)
+    wedding_yard(cv, with_sacks)
+
+
+# the sheepfold: a long road that winds down, and swarms of drones
+WAVES8 = [
+    [(1, 12, 20)],
+    [(2, 10, 30), (1, 8, 18)],
+    [(1, 18, 14)],
+    [(2, 12, 22), (3, 3, 56)],
+    [(1, 24, 10), (2, 8, 20)],
+    [(2, 16, 15), (1, 16, 10), (3, 3, 44)],
+    [(1, 28, 8), (2, 14, 14)],
+    [(3, 8, 30), (1, 22, 8), (2, 14, 12)],
+    [(1, 32, 7), (2, 16, 11), (3, 8, 26)],
+    [(2, 20, 9), (1, 30, 6), (3, 14, 18)],
+]
+# the olive press: the walkers split between two short roads, so smaller waves
+WAVES9 = [
+    [(2, 5, 44)],
+    [(1, 8, 26)],
+    [(2, 6, 34), (1, 5, 24)],
+    [(2, 7, 30), (3, 2, 64)],
+    [(1, 10, 18), (2, 6, 28)],
+    [(2, 9, 24), (3, 3, 52)],
+    [(1, 12, 16), (2, 9, 22), (3, 3, 46)],
+    [(3, 3, 50), (2, 11, 19), (1, 10, 14)],
+    [(1, 15, 13), (2, 11, 17), (3, 4, 42)],
+    [(2, 13, 15), (1, 14, 11), (3, 7, 32)],
+]
+# the wedding, the last stand: no Bride, and a column of tanks at the end
+WAVES10 = [
+    [(2, 8, 36)],
+    [(1, 15, 18), (2, 5, 28)],
+    [(2, 12, 24), (1, 11, 16)],
+    [(2, 12, 20), (3, 5, 48)],
+    [(1, 20, 12), (2, 11, 18)],
+    [(2, 16, 15), (3, 6, 38)],
+    [(1, 22, 10), (2, 15, 14), (3, 5, 32)],
+    [(3, 10, 28), (2, 17, 12), (1, 18, 9)],
+    [(1, 26, 8), (2, 18, 11), (3, 10, 24)],
+    [(2, 22, 9), (1, 24, 7), (3, 22, 14)],
+]
+
+
 class Stage:
     toughness = 0       # invaders have the health of this many waves later
+    ground2 = None      # a second road for the walkers: every other one takes it
 
     def __init__(self, **kw):
         self.__dict__.update(kw)
@@ -1256,21 +1681,52 @@ STAGES = [
           strings={
               "B_STAGE": ("STAGE 07: THE CEMETERY CHURCH",
                           "ΠΙΣΤΑ 07: Η ΕΚΚΛΗΣΙΑ ΤΟΥ ΝΕΚΡΟΤΑΦΕΙΟΥ"),
-              "B_WIN": ("VICTORY! THE VROUVES ARE SAFE!", "ΝΙΚΗ! ΟΙ ΒΡΟΥΒΕΣ ΣΩΘΗΚΑΝ!"),
+              "B_WIN": ("CEMETERY SAVED! NOW, UP THE MOUNTAIN!",
+                        "ΤΟ ΝΕΚΡΟΤΑΦΕΙΟ ΣΩΘΗΚΕ! ΣΤΟ ΒΟΥΝΟ!"),
               "B_LOSE": ("THE CEMETERY CHURCH HAS FALLEN!",
                          "Η ΕΚΚΛΗΣΙΑ ΤΟΥ ΝΕΚΡΟΤΑΦΕΙΟΥ ΕΠΕΣΕ!"),
+          }),
+    Stage(map=MAP8, ground=GROUND8, air=AIR8, sacks=SACKS8, base=mitato_base,
+          flag=STAGES_FLAG8, waves="WAVES8", toughness=1,
+          strings={
+              "B_STAGE": ("STAGE 08: THE SHEEPFOLD", "ΠΙΣΤΑ 08: Η ΣΤΑΝΗ ΣΤΟ ΒΟΥΝΟ"),
+              "B_WIN": ("SHEEPFOLD SAVED! NOW, TO THE PRESS!",
+                        "Η ΣΤΑΝΗ ΣΩΘΗΚΕ! ΣΤΟ ΛΙΟΤΡΙΒΙ!"),
+              "B_LOSE": ("THE SHEEPFOLD HAS FALLEN!", "Η ΣΤΑΝΗ ΕΠΕΣΕ!"),
+          }),
+    Stage(map=MAP9, ground=GROUND9, ground2=GROUND9B, air=AIR9, sacks=SACKS9,
+          base=olive_press_base, flag=STAGES_FLAG9, waves="WAVES9",
+          strings={
+              "B_STAGE": ("STAGE 09: THE OLIVE PRESS", "ΠΙΣΤΑ 09: ΤΟ ΛΙΟΤΡΙΒΙ"),
+              "B_WIN": ("OLIVE PRESS SAVED! NOW, TO THE WEDDING!",
+                        "ΤΟ ΛΙΟΤΡΙΒΙ ΣΩΘΗΚΕ! ΣΤΟ ΓΑΜΟ!"),
+              "B_LOSE": ("THE OLIVE PRESS HAS FALLEN!", "ΤΟ ΛΙΟΤΡΙΒΙ ΕΠΕΣΕ!"),
+          }),
+    Stage(map=MAP10, ground=GROUND10, air=AIR10, sacks=SACKS10, base=wedding_base,
+          flag=STAGES_FLAG2, waves="WAVES10", toughness=1,
+          strings={
+              "B_STAGE": ("STAGE 10: THE BRIDE'S WEDDING", "ΠΙΣΤΑ 10: Ο ΓΑΜΟΣ ΤΗΣ ΝΥΦΗΣ"),
+              "B_WIN": ("WEDDING SAVED! LONG LIVE THE COUPLE!",
+                        "Ο ΓΑΜΟΣ ΣΩΘΗΚΕ! ΖΗΤΩ ΤΟ ΖΕΥΓΑΡΙ!"),
+              "B_LOSE": ("THE WEDDING HAS FALLEN!", "Ο ΓΑΜΟΣ ΧΑΛΑΣΕ!"),
           }),
 ]
 STAGE_STRINGS = ["B_STAGE", "B_WIN", "B_LOSE"]
 
 # defenders each stage has (types 1 cretan, 2 yiayia, 3 bride, 4 psssst,
 # 5 cauldron, 6 baker) and the two lines of the announcement at its start
+ALL6 = {1, 2, 3, 4, 5, 6}
 UNLOCKS = [
-    ({1, 4}, "S_INFO1", "S_INFO4"),
-    ({1, 2, 4}, "B_NEWDEF", "S_INFO2"),
-    ({1, 2, 3, 4}, "B_NEWDEF", "S_INFO3"),
-    ({1, 2, 3, 4, 6}, "B_NEWDEF", "S_INFO6"),
-    ({1, 2, 3, 4, 5, 6}, "B_NEWDEF", "S_INFO5"),
+    ({1, 4}, ("S_INFO1", "S_INFO4")),
+    ({1, 2, 4}, ("B_NEWDEF", "S_INFO2")),
+    ({1, 2, 3, 4}, ("B_NEWDEF", "S_INFO3")),
+    ({1, 2, 3, 4, 6}, ("B_NEWDEF", "S_INFO6")),
+    (ALL6, ("B_NEWDEF", "S_INFO5")),
+    (ALL6, None),
+    (ALL6, None),
+    (ALL6 | {7}, ("B_NEWDEF", "S_INFO7")),
+    (ALL6 | {7}, None),
+    (ALL6 - {3} | {7}, ("B_BRIDE", "B_BRIDE2")),     # the wedding: the Bride is at the altar
 ]
 
 
@@ -1285,6 +1741,10 @@ def render_background(stage, grid, with_sacks=True):
                 wall_cell(cv, grid, c, r)
             elif t in 'KP':
                 pass
+            elif t == 'R':
+                rock_cell(cv, c, r)
+            elif t == 'D':
+                table_cell(cv, grid, c, r)
             else:
                 grass_cell(cv, c, r, None if t == '.' else 3)
                 if t == 'T':
@@ -1297,6 +1757,10 @@ def render_background(stage, grid, with_sacks=True):
                     cv.blit(CYPRESS, c * TW, r * TH)
                 elif t == 'X':
                     cv.blit(GRAVE_A if (c + r) % 4 < 2 else GRAVE_B, c * TW, r * TH)
+                elif t == 'S':
+                    cv.blit(SHEEP if (c + r) % 2 else art.mirror(SHEEP), c * TW, r * TH)
+                elif t == 'J':
+                    cv.blit(JAR, c * TW, r * TH)
     stage.base(cv, with_sacks)
     return cv
 
@@ -1363,6 +1827,8 @@ SFX = {
     "SFX_LASER": [(30, 0, 12), (45, 0, 11), (60, 0, 10), (80, 0, 9), (100, 0, 7), (130, 0, 5)],
     "SFX_THROW": [(300, 0, 10), (260, 0, 10), (220, 0, 9), (190, 0, 7), (170, 0, 5)],
     "SFX_BASH": [(400, 14, 14), (500, 18, 12), (0, 22, 9), (0, 26, 5)],
+    "SFX_LYRA": [(71, 0, 11), (71, 0, 10), (60, 0, 11), (60, 0, 10), (53, 0, 10),
+                 (53, 0, 9), (47, 0, 8), (47, 0, 6)],
     "SFX_PUFF": [(0, 20, 10), (0, 22, 11), (0, 24, 10), (0, 26, 9), (0, 28, 8), (0, 30, 6), (0, 31, 4)],
     "SFX_DIE": [(200, 8, 13), (300, 12, 12), (400, 16, 10), (500, 20, 8), (600, 24, 5)],
     "SFX_HURT": [(900, 0, 15), (1000, 0, 14), (1100, 25, 13), (1200, 28, 11), (1300, 31, 9), (1400, 31, 6)],
@@ -1374,7 +1840,7 @@ SFX = {
     "SFX_MOVE": [(80, 0, 6)],
 }
 SFX_PRIO = {"SFX_MOVE": 0, "SFX_PISTOL": 1, "SFX_RIFLE": 1, "SFX_LASER": 1, "SFX_THROW": 1,
-            "SFX_PUFF": 2, "SFX_BASH": 2, "SFX_DIE": 3, "SFX_SELL": 4, "SFX_BUILD": 4,
+            "SFX_PUFF": 2, "SFX_BASH": 2, "SFX_LYRA": 1, "SFX_DIE": 3, "SFX_SELL": 4, "SFX_BUILD": 4,
             "SFX_ERROR": 4, "SFX_CRUSH": 5, "SFX_HURT": 6, "SFX_WAVE": 7}
 
 # ------------------------------------------------------------------ waves
