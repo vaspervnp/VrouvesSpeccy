@@ -66,19 +66,18 @@ game logic as it was; only the drawing, the HUD and the banner are new.
   waves, on smaller roads laid out for this grid; a short road is easier to cover, so the
   invaders come with the health of a few waves later (`harder`). A cell's art is the CPC's (8 × 12 Mode 0
   pixels), doubled across and stretched 4/3 down; the buildings and their yards are cut from
-  the CPC's stage pictures into a block of cells of their own. The sprites are the CPC's,
-  twice as wide (a Mode 0 pixel is two of ours). The logic is the CPC's in these units: x in
+  the CPC's stage pictures into a block of cells of their own. The other sprites (shots,
+  clouds, the flag) are the CPC's, twice as wide (a Mode 0 pixel is two of ours). The logic is the CPC's in these units: x in
   4 pixels (4 a cell, as on the CPC), y in lines (16 a cell instead of 12); ranges and shot
   speeds are the CPC's 4/3, so they reach as many cells.
 - **Colour**: every attribute cell of the playfield has black ink and a paper of its own: the
   colour most of its pixels have (`tools/zxcolour.py`), the others black, paper or a
   checkerboard of both by how dark they are; the buildings' blocks, where hardly anything
-  walks, take any two colours a cell. The sprites are drawn in ink with a ring of paper round
-  them (their mask). A defender colours its own cell, an ink for the top and one for the
-  bottom (the Cretan red over blue...): no clash, as the cell is its alone. An invader
-  colours the attribute cells it covers, magenta drones, blue guards, red tanks: the
-  Spectrum's own clash, the black of the grass or the road round it takes its colour. The
-  playfield's colours are kept (`PF_AT`), and each frame the invaders' cells get them back.
+  walks, take any two colours a cell. The road has no dots, only its edges. The defenders
+  and the invaders are the Spectrum's own, drawn at its resolution (`tools/zxfigures.py`:
+  chibi, big heads on small bodies), in black ink with a ring of paper round them (their
+  mask): they show on any part of the village and never change its colours, so there is
+  no attribute clash.
 - **Tiles**: 16 × 16 (32 bytes each). The 41 that several stages share are kept in memory; the
   others, mostly the buildings, are packed with their stage: its tile map, cell types, sacks,
   paths, waves, texts and own tiles (LZ, `tools/lz.py`, `src/lz.asm`), and its attributes, are

@@ -34,7 +34,6 @@ IM2_TABLE   equ #FD00
 IM2_FILL    equ #FC
 IM2_JUMP    equ #FCFC
 hs_table    equ #FE01       ; above the IM 2 table: 8 x (3 glyphs, score)
-at_rects    equ hs_table+40 ; the invaders' attribute rectangles: col, row, w, h (4 x 16)
 STACK_TOP   equ IM2_JUMP
 STACK_SIZE  equ 160
 ATTRS       equ #5800
@@ -213,9 +212,6 @@ stage_attrs:
         ld de,PF_AT
         ld bc,PF_W*PF_H/8
         ldir
-        xor a
-        ld (at_n),a
-        ld (ban_shown),a
         ret
 
 ;------------------------------------------------------------------------------
@@ -442,12 +438,7 @@ tr_budget:  defs 1
 ticks_due:  defs 1
 frame_acc:  defs 1
 dbg_el:     defs 1
-ban_shown:  defs 1          ; the banner is on the screen (its colours too)
-at_n:       defs 1          ; invaders coloured last frame
-at_ink:     defs 1
-at_w:       defs 1
-at_skip:    defs 1
-PF_AT:      defs PF_W*PF_H/8 ; the playfield's colours, the defenders' inks in
+PF_AT:      defs PF_W*PF_H/8 ; the stage's colours, for under the banner
 game_vars_end:
 STAGE_AREA: defs STAGE_SIZE
 bss_end:

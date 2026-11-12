@@ -29,11 +29,6 @@ SCALE = 3
 CS = 16
 SPRITES = dict(art.SPRITES + art.EXTRA_SPRITES)
 BLACK, BLUE, RED, MAGENTA, GREEN, CYAN, YELLOW, WHITE = range(8)
-# game.asm's tower_inks and enemy_inks: top and bottom of the cell
-INKS = {"spr_cretan": (RED, BLUE), "spr_yiayia": (WHITE, BLUE), "spr_bride": (YELLOW, WHITE),
-        "spr_psssst": (CYAN, YELLOW), "spr_cauldron": (GREEN, RED), "spr_baker": (WHITE, YELLOW),
-        "spr_lyra": (MAGENTA, RED)}
-ENEMY = {"drone": MAGENTA, "guard": BLUE, "tank": RED}
 
 
 def block(k):
@@ -66,11 +61,6 @@ class Picture:
             free |= {(x, y) for y in range(r0 * 2, (r0 + bh) * 2) for x in range(c0 * 2, (c0 + bw) * 2)}
         self.bits, self.attrs = zc.playfield(pix, self.acols, self.arows, 0, 0, free)
 
-    def ink(self, cx, cy, ink):
-        i = cy * self.acols + cx
-        a = self.attrs[i]
-        self.attrs[i] = (a & 0xF8) | (BLACK if (a >> 3) & 7 == ink else ink)
-
     def sprite(self, name, x, y):
         mask, ink = zxdata.sprite_mono(name, SPRITES[name])
         for j, row in enumerate(mask):
@@ -78,18 +68,9 @@ class Picture:
                 if m and 0 <= y + j < len(self.bits) and 0 <= x + i < len(self.bits[0]):
                     self.bits[y + j][x + i] = ink[j][i]
 
-    def defender(self, name, c, r):
+    def figure(self, name, c, r):
+        """a defender or an invader in a cell, as the game draws it: black"""
         self.sprite(name, c * CS, r * CS + 2)
-        for dy, ink in enumerate(INKS[name]):
-            for dx in (0, 1):
-                self.ink(c * 2 + dx, r * 2 + dy, ink)
-
-    def invader(self, name, c, r):
-        self.sprite(name, c * CS, r * CS + 2)
-        ink = ENEMY[name.split('_')[1]]
-        for dy in (0, 1):
-            for dx in (0, 1):
-                self.ink(c * 2 + dx, r * 2 + dy, ink)
 
     def image(self):
         h, w = len(self.bits), len(self.bits[0])
@@ -160,9 +141,9 @@ def background():
     grid = ["".join(r) for r in grid]
     p = Picture(grid, ((kafenio, 0, 14), (church, 35, 3)), wrap=True)
     for name, c, r in BG_DEFENDERS:
-        p.defender(name, c, r)
+        p.figure(name, c, r)
     for name, c, r in BG_INVADERS:
-        p.invader(name, c, r)
+        p.figure(name, c, r)
     for k, c0, r0 in ((0, 0, 14), (1, 35, 3)):
         bc, br, _, _ = zw.STAGES[k].block
         zw.MW, zw.MH = 15, 10
@@ -302,10 +283,10 @@ def banner():
     # the village's own, along the road
     for name, c in (("spr_cretan", 2), ("spr_bride", 5), ("spr_yiayia", 9), ("spr_lyra", 12),
                     ("spr_baker", 15), ("spr_cauldron", 17)):
-        p.defender(name, c, 4)
+        p.figure(name, c, 4)
     for name, c in (("spr_guard_a", 1), ("spr_tank_la", 4), ("spr_guard_b", 7), ("spr_guard_a", 11),
                     ("spr_tank_lb", 14), ("spr_guard_b", 18)):
-        p.invader(name, c, 5)
+        p.figure(name, c, 5)
     save(p.image(), "itch_banner.png")
 
 

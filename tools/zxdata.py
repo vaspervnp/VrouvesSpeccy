@@ -27,6 +27,7 @@ import lz  # noqa: E402
 import texts  # noqa: E402
 import world  # noqa: E402
 import zxcolour as zc  # noqa: E402
+import zxfigures  # noqa: E402
 import zxworld as zw  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -261,6 +262,8 @@ def sprite_mono(name, rows):
         mask, ink = zc.sprite(rows, halo=True, outline=True, double=True)
         ink = [[1 if c != '.' else 0 for c in r for _ in (0, 1)] for r in rows]
         return mask, ink
+    if name in zxfigures.FIGURES:   # the defenders and invaders: the Spectrum's own
+        return zxfigures.mono(name)
     return zc.sprite(rows, halo=name not in NO_HALO, double=True)
 
 
@@ -306,6 +309,29 @@ def sprite_data():
 
 
 # ------------------------------------------------------------------ stages
+def clean_road(bits, grid):
+    """the road's dots off (small groups of ink on its cells), its edges kept:
+    the invaders walk there and take its cells' ink, so nothing else changes"""
+    h, w = len(bits), len(bits[0])
+    seen = set()
+    for y in range(h):
+        for x in range(w):
+            if not bits[y][x] or (x, y) in seen or grid[y // CW][x // CW] != '#':
+                continue
+            comp, todo = [], [(x, y)]
+            seen.add((x, y))
+            while todo:
+                cx, cy = todo.pop()
+                comp.append((cx, cy))
+                for nx, ny in ((cx + 1, cy), (cx - 1, cy), (cx, cy + 1), (cx, cy - 1)):
+                    if 0 <= nx < w and 0 <= ny < h and bits[ny][nx] and (nx, ny) not in seen:
+                        seen.add((nx, ny))
+                        todo.append((nx, ny))
+            if len(comp) <= 6:
+                for cx, cy in comp:
+                    bits[cy][cx] = 0
+
+
 def tile_key(bits, c, r):
     return tuple(tuple(bits[r * CW + y][c * CW:c * CW + CW]) for y in range(CW))
 
@@ -375,6 +401,8 @@ def stage_data(ids, stage_enc, ts):
         empty, _ = zw.render(k, False)
         bits, attrs = zc.playfield(full, ACOLS, AROWS, PF_X, PF_Y, zw.free_cells(k))
         ebits, _ = zc.playfield(empty, ACOLS, AROWS, PF_X, PF_Y, zw.free_cells(k))
+        clean_road(bits, grid)
+        clean_road(ebits, grid)
         pics.append((grid, bits, attrs, ebits))
         for b_ in (bits, ebits):
             for r in range(MH):
